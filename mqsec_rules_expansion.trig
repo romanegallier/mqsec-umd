@@ -1,0 +1,284 @@
+@prefix rdf:    <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs:   <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix td:     <http://www.w3.org/ns/td#> .
+@prefix s:      <http://schema.org/> .
+@prefix xsd:    <http://www.w3.org/2001/XMLSchema#> .
+@prefix sh:     <http://www.w3.org/ns/shacl#> .
+@prefix mqsec:  <http://bruno.univ-tln.fr/mqsec/1.0#> .
+@prefix xacml:  <urn:oasis:names:tc:xacml:3.0:> .
+
+# namespaces declaration for the Sparql queries
+mqsec:
+	sh:declare [
+		sh:prefix "mqsec" ;
+		sh:namespace "http://bruno.univ-tln.fr/mqsec/1.0#"^^xsd:anyURI ;
+	] ;
+	sh:declare [
+    	sh:prefix "xsd" ;
+    	sh:namespace "http://www.w3.org/2001/XMLSchema#"^^xsd:anyURI ;
+    ] ;
+    sh:declare [
+    	sh:prefix "rdf" ;
+    	sh:namespace "http://www.w3.org/1999/02/22-rdf-syntax-ns#"^^xsd:anyURI ;
+    ] ;
+    sh:declare [
+      	sh:prefix "xacml" ;
+       	sh:namespace "urn:oasis:names:tc:xacml:3.0:"^^xsd:anyURI ;
+    ] .
+
+## Constraints on the model elements.
+mqsec:pepEventShape
+    a sh:NodeShape ;
+    sh:targetClass mqsec:pepEvent ;
+    sh:property [
+        sh:path mqsec:XXX ;
+        sh:minCount 1 ;
+    ] .
+
+mqsec:pepEventRuleShape
+    a sh:NodeShape  ;
+    sh:targetClass mqsec:pepEventRule ;
+    sh:property [
+        sh:path mqsec:order ;
+        sh:datatype xsd:int ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+    ] ;
+    sh:property [
+            sh:path mqsec:label ;
+            sh:datatype xsd:int ;
+            sh:minCount 1 ;
+            sh:maxCount 1 ;
+    ] ;
+    sh:property [
+            sh:path mqsec:decision ;
+            sh:in (mqsec:allow mqsec:deny) ;
+            sh:minCount 1 ;
+            sh:maxCount 1 ;
+    ] .
+
+mqsec:parameterShape
+    a sh:NodeShape ;
+    sh:targetClass mqsec:parameter .
+
+## SHACL Rule to extend pepEventRule to SHACL
+mqsec:pepEventRuleExtension
+    a sh:NodeShape ;
+    sh:targetClass mqsec:pepEventRule ;
+    sh:rule [
+			a sh:SPARQLRule ;
+        sh:order 1 ;
+        sh:prefixes mqsec:, rdf:, sh:, xsd: ;
+        sh:condition mqsec:ruleShape ; ## a quoi ca sert ??? mqsec:ruleShape est pas definie ...
+				sh:construct """
+    			CONSTRUCT {
+    			    $this  a sh:NodeShape ;
+    			       sh:targetClass mqsec:pepEvent ;
+    			       sh:rule [
+                        sh:targetClass mqsec:pepEvent ;
+    			        a sh:SPARQLRule ;
+                        mqsec:order ?priority ;
+
+                        sh:prefixes mqsec:, rdf: ;
+                        sh:order 1 ;
+                        sh:construct ?construct ;
+                        ] ;
+
+                }
+    			WHERE {
+    			        $this mqsec:order ?priority .
+    			        $this mqsec:decision ?decision .
+
+    			        BIND(
+							concat(
+								concat(
+									concat(
+										concat(
+											concat(
+												'''
+					    			                PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+					    			                PREFIX mqsec: <http://bruno.univ-tln.fr/mqsec/1.0#>
+					    			                CONSTRUCT {
+		    			                 		''',
+		    			                 		concat(
+													concat(
+													 	concat('<',str($this)),
+													 	'-application>'
+												 	),
+													'''
+					    			                	a mqsec:RuleApplication ;
+					    			                      mqsec:says [
+					    			                    	a rdf:Statement ;
+							    			                  rdf:subject $this ;
+							    			                  rdf:predicate mqsec:decision ;
+							    			                  rdf:object 
+		    			                   			''',
+		    			                   			concat(
+		    			                   				concat('<',str(?decision)),'>')), 
+		    			                   				'''; ];
+		    			                 					mqsec:order 
+		    			                 				''', concat(concat(concat('',str(?priority)),''),''' .}
+		    			                 WHERE {
+		    			                    optional {''',concat(concat(concat('<',str($this)),'>'),''' mqsec:decision ?decision  }}
+					               '''
+								 )))))))
+    			             as ?construct)
+    			      }
+    			"""
+    ] ;
+    sh:rule [
+    	a sh:SPARQLRule ;
+    		sh:order 2 ;
+    		sh:prefixes mqsec: ;
+    		sh:prefixes sh: ;
+    		sh:condition sh:condition;
+    		sh:construct """
+    			CONSTRUCT {
+                        ?rule sh:condition ?condition	.		}
+    			WHERE {
+    				$this sh:condition ?condition .
+    				$this sh:rule ?rule .
+    			}
+    			""" ;
+    ] ;
+    sh:rule [
+    	a sh:SPARQLRule ;
+    		sh:order 2 ;
+    		sh:prefixes mqsec:, sh: ;
+    		sh:condition mqsec:condition-target;
+    		sh:construct """
+    			CONSTRUCT {
+                        ?rule sh:condition [
+                          	sh:property [
+                       	      sh:path mqsec:target ;
+                       	      sh:pattern ?pattern ;
+                       	    ]
+                       	  ]	.		}
+    			WHERE {
+    				$this mqsec:condition-target ?target .
+    				BIND(CONCAT(CONCAT('^', ?target),'$') as ?pattern ) .
+    				$this sh:rule ?rule .
+    			}
+    			""" ;
+    ] ;
+    sh:rule [
+		a sh:SPARQLRule ;
+		sh:order 2 ;
+		sh:prefixes mqsec:, sh: ;
+		sh:condition mqsec:condition-target-pattern;
+		sh:construct """
+			CONSTRUCT {
+                    ?rule sh:condition [
+                      	sh:property [
+                   	      sh:path mqsec:target ;
+                   	      sh:pattern ?pattern ;
+                   	    ]
+                   	  ]	.		}
+			WHERE {
+				$this mqsec:condition-target-pattern ?pattern .
+				$this sh:rule ?rule .
+			}
+			""" ;
+	] ;
+	sh:rule [
+    a sh:SPARQLRule ;
+    	sh:order 2 ;
+    	sh:prefixes mqsec:, sh: ;
+    	sh:condition mqsec:condition-action;
+    	sh:construct """
+    		CONSTRUCT {
+                      ?rule sh:condition [
+                       	sh:property [
+                        	      sh:path mqsec:action ;
+                           	      sh:pattern ?pattern ;
+                           	    ]
+                           	  ]	.		}
+        			WHERE {
+        				$this mqsec:condition-action ?action .
+        				$this sh:rule ?rule .
+        				BIND(CONCAT(CONCAT('^', ?action),'$') as ?pattern ) .
+        			}
+        			""" ;
+        ] ;
+    sh:rule [
+    	a sh:SPARQLRule ;
+    		sh:order 2 ;
+    		sh:prefixes mqsec:, sh: ;
+    		sh:condition mqsec:condition-action-pattern ;
+    		sh:construct """
+    			CONSTRUCT {
+                        ?rule sh:condition [
+                          	sh:property [
+                       	      sh:path mqsec:action ;
+                       	      sh:pattern ?pattern ;
+                       	    ]
+                       	  ]	.		}
+    			WHERE {
+    				$this mqsec:condition-action-pattern ?pattern .
+    				$this sh:rule ?rule .
+    			}
+    			""" ;
+    	] ;
+    sh:rule [
+      a sh:SPARQLRule;
+        sh:order 1 ;
+        sh:condition [
+            sh:property [
+                sh:path mqsec:conflict-resolution-policy ;
+                sh:min 1;
+                ]
+            ] ;
+        sh:prefixes mqsec:, sh: ,xacml: ;
+        sh:construct """
+                    CONSTRUCT {
+                                   $this a sh:NodeShape ;
+                                         sh:targetClass mqsec:pepEvent ;
+                                         sh:order 1000 ;
+                                         sh:rule [
+                 			                a sh:SPARQLRule ;
+                                            sh:order 1000 ;
+                                            sh:prefixes mqsec: , rdf: ;
+                                            sh:construct ?construct ;
+                                            sh:prefixes mqsec:, sh: ,xacml: ;
+                                            ] .
+                            }
+                 			WHERE {
+                                    $this mqsec:conflict-resolution-policy ?crf .
+
+                 			        BIND('''PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+                                            PREFIX mqsec: <http://bruno.univ-tln.fr/mqsec/1.0#>
+                                            CONSTRUCT {
+                                                       ?this mqsec:applicable-rule [
+                                                         mqsec:decision ?decision ;
+                                                         mqsec:rule ?r
+                                                         ]
+                                                       }
+                                                       WHERE {
+                                                                                  SELECT ?r ?decision ?priority ?max ?this
+                                                             			          WHERE {
+                                                             			                    { SELECT (MAX(?order) as ?max)
+                                                                                              WHERE {?r a mqsec:RuleApplication ;
+                                                                                                          mqsec:order ?order ;
+                                                                                                          mqsec:says ?s .
+                                                                                               }
+                                                                                             }
+                                                                                            bind($this as ?this) .
+                                                             			                    ?r a mqsec:RuleApplication ;
+                                                             			                       mqsec:order ?max ;
+                                                             			                       mqsec:says ?s .
+                                                             			                    ?s a rdf:Statement ;
+                                                             			                       rdf:predicate  mqsec:decision ;
+                                                             			                       rdf:subject $this ;
+                                                             			                       rdf:object ?decision .
+                                                             			                    }
+                                                             			                                        # for allow override
+                                                                                                                # ORDER  BY ?decision
+                                                                                                                # for deny override
+                                                                                                                ORDER  BY DESC(?decision)
+
+                                                                                                                LIMIT 1
+                                                             			                    }'''
+                  			                 as ?construct)
+                 			      }
+                 			"""
+        ] .

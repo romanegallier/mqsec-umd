@@ -1,0 +1,293 @@
+@prefix xsd:    <http://www.w3.org/2001/XMLSchema#> .
+@prefix smd:    <http://bruno.univ-tln.fr/smartdemo/1.0#> .
+@prefix mqsec:  <http://bruno.univ-tln.fr/mqsec/1.0#> .
+
+
+#    WATER_TRAITMENT = 1
+#    PATIENT_MONITORING = 2
+#    HEMODIALYSIS_STATION_MONITORING = 3
+
+smd:medecin1
+		a mqsec:access-subject ;
+			smd:id "medecin1" ;
+			smd:role smd:medecin ;
+			smd:workingHours [
+				smd:startHour "09:00:00"^^xsd:time ;
+				smd:endHour "18:00:00"^^xsd:time ;
+			].
+
+smd:medecin2
+		a mqsec:access-subject ;
+			smd:id "medecin2" ;
+			smd:role smd:medecin .
+
+smd:patient1
+		a mqsec:acess-subsject ;
+			smd:id "patient1" ;
+			smd:role smd:patient ;
+			smd:medecin smd:medecin1 .
+
+smd:patient2
+	a mqsec:acess-subsject ;
+		smd:id "patient2" ;
+		smd:role smd:patient ;
+		smd:medecin smd:medecin1 .
+
+smd:patient3
+	a mqsec:acess-subsject ;
+		smd:id "patient3" ;
+		smd:role smd:patient ;
+		smd:medecin smd:medecin1 .
+
+smd:patient4
+		a mqsec:acess-subsject ;
+			smd:id "patient4" ;
+			smd:role smd:patient ;
+			smd:medecin smd:medecin2 .
+
+smd:patient5
+	a mqsec:acess-subsject ;
+		smd:id "patient5" ;
+		smd:role smd:patient ;
+		smd:medecin smd:medecin2 .
+
+smd:patient6
+	a mqsec:acess-subsject ;
+		smd:id "patient6" ;
+		smd:role smd:patient ;
+		smd:medecin smd:medecin2 .
+
+smd:device1
+	a mqsec:acess-subsject ;
+		smd:id "device1" ;
+		smd:role smd:device ;
+		smd:intervalLog "PT10.000S"^^xsd:duration ;
+		smd:patient smd:patient1 .
+
+smd:device2
+	a mqsec:acess-subsject ;
+		smd:id "device1" ;
+		smd:role smd:device ;
+		smd:intervalLog "PT10.000S"^^xsd:duration ;
+		smd:patient smd:patient1 .
+
+smd:device3
+	a mqsec:acess-subsject ;
+		smd:id "device1" ;
+		smd:role smd:device ;
+		smd:intervalLog "PT10.000S"^^xsd:duration;
+		smd:patient smd:patient1 .
+
+smd:seanceDedialyse1
+	smd:id "seanceDialyse1" ;
+	smd:schedule [
+		smd:startHour "07:15:00"^^xsd:time ;
+		smd:endHour "11:15:00"^^xsd:time ;
+	].
+
+smd:seanceDedialyse2
+	a smd:dialysisSession ;
+	smd:id "seanceDialyse1" ;
+	smd:schedule [
+		smd:startHour "13:15:00"^^xsd:time ;
+		smd:endHour "17:15:00"^^xsd:time ;
+	].
+
+smd:applicationHemodialyse
+	a mqsec:acess-subject ;
+	smd:role smd:applicationHemodialyse .
+
+mqsec:denyDecision mqsec:decision mqsec:deny .
+mqsec:allowDecision mqsec:decision mqsec:allow .
+
+smd:m1
+	mqsec:action "subscribe" ;
+	mqsec:applicable-rule mqsec:denyDecision ;
+	mqsec:source "medecin1" ;
+	mqsec:target "UMD/Objet/Medical/device1/Log" ;
+	mqsec:timestamp "2020-03-03T10:12:01Z"^^xsd:dateTime ;
+	a mqsec:pepEvent .
+
+smd:m7
+	mqsec:action "unsubscribe" ;
+	mqsec:applicable-rule mqsec:allowDecision ;
+	mqsec:source "medecin1" ;
+	mqsec:target "UMD/Objet/Medical/device2/Log" ;
+	mqsec:timestamp "2020-03-03T10:12:02Z"^^xsd:dateTime ;
+	a mqsec:pepEvent .
+
+smd:m2
+	mqsec:action "subscribe" ;
+	mqsec:applicable-rule mqsec:allowDecision ;
+	mqsec:source "medecin1" ;
+	mqsec:target "UMD/Objet/Medical/device2/Log" ;
+	mqsec:timestamp "2020-03-03T10:12:02Z"^^xsd:dateTime ;
+	a mqsec:pepEvent .
+
+smd:m3
+	mqsec:action "subscribe" ;
+	mqsec:applicable-rule mqsec:allowDecision ;
+	mqsec:source "medecin1" ;
+	mqsec:target "UMD/Objet/Medical/device3/Log" ;
+	mqsec:timestamp "2020-03-03T10:12:03Z"^^xsd:dateTime ;
+	a mqsec:pepEvent .
+
+smd:m4
+	mqsec:action "subscribe" ;
+	mqsec:applicable-rule mqsec:denyDecision ;
+	mqsec:source "medecin1" ;
+	mqsec:target "UMD/Objet/Medical/device1/Log" ;
+	mqsec:timestamp "2020-03-03T10:12:04Z"^^xsd:dateTime ;
+	a mqsec:pepEvent .
+
+smd:m5
+	mqsec:action "subscribe" ;
+	mqsec:applicable-rule mqsec:allowDecision ;
+	mqsec:source "medecin1" ;
+	mqsec:target "UMD/Objet/Medical/device2/Log" ;
+	mqsec:timestamp "2020-03-03T10:12:05Z"^^xsd:dateTime ;
+	a mqsec:pepEvent .
+
+smd:m6
+	mqsec:action "subscribe" ;
+	mqsec:applicable-rule mqsec:allowDecision ;
+	mqsec:source "medecin1" ;
+	mqsec:target "UMD/Objet/Medical/device3/Log" ;
+	mqsec:timestamp "2020-03-03T10:12:06Z"^^xsd:dateTime ;
+	a mqsec:pepEvent .
+
+
+
+
+smd:m8
+	mqsec:action "unsubscribe" ;
+	mqsec:applicable-rule mqsec:allowDecision ;
+	mqsec:source "medecin1" ;
+	mqsec:target "UMD/Objet/Medical/device3/Log" ;
+	mqsec:timestamp "2020-03-03T10:12:03Z"^^xsd:dateTime ;
+	a mqsec:pepEvent .
+
+
+smd:m9
+	mqsec:action "unsubscribe" ;
+	mqsec:applicable-rule mqsec:denyDecision ;
+	mqsec:source "medecin1" ;
+	mqsec:target "UMD/Objet/Medical/device1/Log" ;
+	mqsec:timestamp "2020-03-03T10:12:04Z"^^xsd:dateTime ;
+	a mqsec:pepEvent .
+
+smd:m10
+	mqsec:action "unsubscribe" ;
+	mqsec:applicable-rule mqsec:allowDecision ;
+	mqsec:source "medecin1" ;
+	mqsec:target "UMD/Objet/Medical/device2/Log" ;
+	mqsec:timestamp "2020-03-03T10:12:05Z"^^xsd:dateTime ;
+	a mqsec:pepEvent .
+
+
+
+
+smd:e1
+    a mqsec:pepEvent ;
+    mqsec:timestamp "2019-05-02T06:00:00Z"^^xsd:dateTime  ;
+    mqsec:action    "subscribe" ;
+    mqsec:source    "u1" ;
+    mqsec:target    "topic1/subtopic1" .
+
+smd:e2
+    a mqsec:pepEvent ;
+    mqsec:timestamp "2019-05-02T09:00:00Z"^^xsd:dateTime  ;
+    mqsec:action    "subscribe" ;
+    mqsec:source    "patient1" ;
+    mqsec:target    "UMD/Patient/patient1/Prescription" .
+
+smd:e3
+		a mqsec:pepEvent ;
+		mqsec:timestamp "2019-05-02T07:00:00Z"^^xsd:dateTime  ;
+		mqsec:action    "subscribe" ;
+		mqsec:source    "medecin1" ;
+		mqsec:target    "UMD/Patient/patient1/Prescription" .
+
+smd:e4
+		a mqsec:pepEvent ;
+		mqsec:timestamp "2019-05-02T09:00:00Z"^^xsd:dateTime  ;
+		mqsec:action    "publish" ;
+		mqsec:source    "medecin1" ;
+		mqsec:target    "UMD/Patient/patient1/Prescription" .
+
+smd:e5
+		a mqsec:pepEvent ;
+		mqsec:timestamp "2019-05-02T09:00:00Z"^^xsd:dateTime  ;
+		mqsec:action    "publish" ;
+		mqsec:source    "medecin1" ;
+		mqsec:target    "UMD/Patient/patient1/Nephrologue" .
+
+smd:e6
+		a mqsec:pepEvent ;
+		mqsec:timestamp "2019-05-02T09:00:00Z"^^xsd:dateTime  ;
+		mqsec:action    "publish" ;
+		mqsec:source    "medecin1" ;
+		mqsec:target    "UMD/Patient/patient1/Historique_medical" .
+
+smd:e7
+		a mqsec:pepEvent ;
+		mqsec:timestamp "2019-05-02T09:00:00Z"^^xsd:dateTime  ;
+		mqsec:action    "publish" ;
+		mqsec:source    "medecin1" ;
+		mqsec:target    "UMD/Patient/patient1/Parametre_dialyse" .
+
+
+smd:e8
+		a mqsec:pepEvent ;
+		mqsec:timestamp "2019-05-02T09:00:00Z"^^xsd:dateTime  ;
+		mqsec:action    "subscribe" ;
+		mqsec:source    "medecin1" ;
+		mqsec:target    "UMD/Objet/Medical/Device1/Log" .
+
+smd:e9
+		a mqsec:pepEvent ;
+		mqsec:timestamp "2019-05-02T09:00:00Z"^^xsd:dateTime  ;
+		mqsec:action    "subscribe" ;
+		mqsec:source    "medecin1" ;
+		mqsec:target    "UMD/Salle_dialyse/PosteHemodialyse1/Device1/Log" .
+
+smd:e9
+		a mqsec:pepEvent ;
+		mqsec:timestamp "2019-05-02T09:00:10Z"^^xsd:dateTime  ;
+		mqsec:action    "subscribe" ;
+		mqsec:source    "device1" ;
+		mqsec:target    "UMD/Salle_dialyse/PosteHemodialyse1/Device1/Log" .
+
+smd:e9
+		a mqsec:pepEvent ;
+		mqsec:timestamp "2019-05-02T09:00:10Z"^^xsd:dateTime  ;
+		mqsec:action    "subscribe" ;
+		mqsec:source    "device2" ;
+		mqsec:target    "UMD/Salle_dialyse/PosteHemodialyse1/Device1/Log" .
+
+smd:e9
+		a mqsec:pepEvent ;
+		mqsec:timestamp "2019-05-02T09:00:10Z"^^xsd:dateTime  ;
+		mqsec:action    "subscribe" ;
+		mqsec:source    "device3" ;
+		mqsec:target    "UMD/Salle_dialyse/PosteHemodialyse1/Device1/Log" .
+
+
+
+
+#UMD/Patient/Patient_id/Prescription
+#UMD/Patient/Patient_id/Feuille_seance
+#UMD/Patient/Patient_id/Historique_medical
+#UMD/Patient/Patient_id/Recapitulatif_seance
+#UMD/Patient/Patient_id/Parametre_dialyse
+#UMD/Patient/Patient_id/Nephrologue
+
+#UMD/Salle_dialyse/Poste_hemodialyse/Patient
+#UMD/Salle_dialyse/Poste_hemodialyse/Device_id/Commande
+#UMD/Salle_dialyse/Poste_hemodialyse/Device_id/Log
+#UMD/Salle_dialyse/Poste_hemodialyse/Device_id/Alarme
+
+#UMD/Objet/Medical/Device_id/Patient
+#UMD/Objet/Medical/Device_id/Commande
+#UMD/Objet/Medical/Device_id/Log
+#UMD/Objet/Medical/Device_id/Alarme

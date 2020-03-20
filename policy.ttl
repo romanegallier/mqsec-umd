@@ -1,0 +1,387 @@
+@prefix rdf:    <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs:   <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix sh:     <http://www.w3.org/ns/shacl#> .
+@prefix xsd:    <http://www.w3.org/2001/XMLSchema#> .
+@prefix mqsec:  <http://bruno.univ-tln.fr/mqsec/1.0#> .
+@prefix smd:    <http://bruno.univ-tln.fr/smartdemo/1.0#> .
+@prefix xacml:  <urn:oasis:names:tc:xacml:3.0:>
+
+
+# chaque règle comporte une propriété mqsec:decision qui pour valeur mqsec:allow ou mqsec:deny
+# les règles s'appliquent à des ressources de la classe mqsec:pepEventRule
+smd:rule1
+    a mqsec:pepEventRule ;
+    rdfs:label "Rule 1" ;
+    rdfs:comment "Aucune condition n'est précisée : par défaut tout est refusé."@fr;
+    # L'ordre est utilisé pour résoudre les conflits.
+    # Deux règles peuvent avoir le même ordre.
+    mqsec:order 1 ;
+    # the permission
+    mqsec:decision mqsec:deny .
+
+
+
+################PATIENT ##########################################################
+#Un patient peut lire le dossier pour lequel il est attitré.
+  smd:rule2
+    a mqsec:pepEventRule ;
+      rdfs:label "Rule 2" ;
+      rdfs:comment "Un patient peut lire le dossier pour lequel il est attitré.";
+      mqsec:order 2;
+      mqsec:condition-target-pattern "^UMD/Patient/*" ;
+      mqsec:condition-action "subscribe" ;
+      sh:condition [
+          sh:sparql [
+            a sh:SPARQLConstraint ;   # This triple is optional
+            sh:prefixes mqsec: , smd: ;
+            sh:select """
+              PREFIX mqsec: <http://bruno.univ-tln.fr/mqsec/1.0#>
+              PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+              PREFIX smd: <http://bruno.univ-tln.fr/smartdemo/1.0#>
+              SELECT $this
+              WHERE {
+                {
+                  $this mqsec:source ?sourceId .
+                  ?source smd:id ?sourceId .
+                  $this mqsec:target ?topic .
+                  FILTER (!regex(?topic, ?sourceId ))
+                }
+                UNION
+                { # verifie que c'est un patient
+                  $this mqsec:source ?sourceId .
+                  FILTER NOT EXISTS {
+                    ?source smd:id ?sourceId .
+                    ?source smd:role smd:patient .
+                  }
+                }
+              }
+
+              """ ;
+          ]
+      ] ;
+      mqsec:decision mqsec:allow .
+
+      
+
+
+
+
+
+#################################Nephrologist###################################
+
+smd:rule3
+    a mqsec:pepEventRule ;
+    rdfs:label "Rule 3" ;
+    rdfs:comment "Le medecin peut souscrire dans les sujet des patients."@fr;
+    mqsec:order 2 ;
+    mqsec:condition-action "subscribe" ;
+    mqsec:condition-target-pattern "^UMD/Patient/*" ;
+    sh:condition [
+      sh:sparql [
+        a sh:SPARQLConstraint ;
+        sh:prefixes mqsec: ,smd: ;
+        sh:select """
+          PREFIX mqsec: <http://bruno.univ-tln.fr/mqsec/1.0#>
+          PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+          PREFIX smd: <http://bruno.univ-tln.fr/smartdemo/1.0#>
+          SELECT $this
+          WHERE {
+              $this mqsec:source ?medecinId .
+              FILTER NOT EXISTS {
+                ?medecin smd:id ?medecinId .
+                ?medecin smd:role smd:medecin .
+              }
+          }
+          """;
+      ]
+    ] ;
+    mqsec:decision mqsec:allow .
+
+#Faire pareil pour Nephrologue, Historique médical, parametre_dialyse
+smd:rule4
+  a mqsec:pepEventRule ;
+  rdfs:label "Rule 4" ;
+  rdfs:comment "Le medecin peut publier dans certain sujet des patients."@fr;
+  mqsec:order 2 ;
+  mqsec:condition-action "publish" ;
+  mqsec:condition-target-pattern "^UMD/Patient/[0-z]*/(Prescription|Nephrologue|Historique_medical|Parametre_dialyse)$" ;
+  sh:condition [
+    sh:sparql [
+      a sh:SPARQLConstraint ;
+      sh:prefixes mqsec: ,smd: ;
+      sh:select """
+        PREFIX mqsec: <http://bruno.univ-tln.fr/mqsec/1.0#>
+        PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+        PREFIX smd: <http://bruno.univ-tln.fr/smartdemo/1.0#>
+        SELECT $this
+        WHERE {
+            $this mqsec:source ?medecinId .
+            FILTER NOT EXISTS {
+              ?medecin smd:id ?medecinId .
+              ?medecin smd:role smd:medecin .
+            }
+        }
+        """;
+    ]
+  ] ;
+  mqsec:decision mqsec:allow .
+
+smd:rule6
+  a mqsec:pepEventRule ;
+  rdfs:label "Rule 6" ;
+  rdfs:comment "Le medecin peut agir seulement dans ses horaire de travail."@fr;
+  mqsec:order 2 ;
+  sh:condition [
+    sh:sparql [
+      a sh:SPARQLConstraint ;
+      sh:prefixes mqsec: ,smd: ;
+      sh:select """
+        PREFIX mqsec: <http://bruno.univ-tln.fr/mqsec/1.0#>
+        PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+        PREFIX smd: <http://bruno.univ-tln.fr/smartdemo/1.0#>
+        SELECT $this
+        WHERE {
+          {
+            $this mqsec:source ?medecinId .
+            $this mqsec:timestamp ?timestamp .
+            ?medecin smd:id ?medecinId .
+            ?medecin smd:workingHours / smd:startHour ?startHour .
+            ?medecin smd:workingHours / smd:endHour ?endHour .
+            FILTER (?timestamp >= ?startHour && ?timestamp <= ?endHour)
+          }
+          UNION
+          {
+            $this mqsec:source ?medecinId .
+            FILTER NOT EXISTS {
+              ?medecin smd:id ?medecinId .
+              ?medecin smd:role smd:medecin .
+            }
+          }
+        }
+        """;
+    ]
+  ] ;
+  mqsec:decision mqsec:deny .
+
+
+#  Un médecin peut souscrire aux données des capteurs médicaux ( **UMD/Objet/Medical/Device_id/Log** ) et des capteurs des postes de dialyse (**UMD/Salle_dialyse/Poste_hemodialyse/Device_id/Log**) à condition que le poste soit attribué à un de ses patients
+
+smd:rule7
+    a mqsec:pepEventRule ;
+    rdfs:label "Rule 7" ;
+    rdfs:comment "Un médecin peut souscrire aux données des capteurs médicaux à condition que le poste soit attribué à un de ses patients" ;
+    mqsec:order 3 ;
+    mqsec:condition-action "subscribe" ; #subscribe
+    mqsec:condition-target "UMD/Objet/Medical/[0-z]*/Log" ;
+    sh:condition [
+      sh:sparql [
+        a sh:SPARQLConstraint ;
+        sh:prefixes mqsec: ,smd: ;
+        sh:select """
+          PREFIX mqsec: <http://bruno.univ-tln.fr/mqsec/1.0#>
+          PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+          PREFIX smd: <http://bruno.univ-tln.fr/smartdemo/1.0#>
+          SELECT $this
+          WHERE {
+            $this mqsec:target ?topicLog .
+            $this mqsec:source ?medecinId .
+            ?medecin smd:role ?medecinId .
+            ?medecin smd:id ?medecinId .
+            BIND( REPLACE ( REPLACE(?topicLog,"/Log",""),"UMD/Objet/Medical/","" ) AS ?deviceId)
+            ?device smd:id ?DeviceId .
+            ?device smd:role smd:device .
+            ?device smd:patient ?patient .
+            ?patient smd:medecin ?medecin .
+          }
+          """;
+      ]
+    ] ;
+    mqsec:decision mqsec:allow .
+
+smd:rule8
+    a mqsec:pepEventRule ;
+    rdfs:label "Rule 8" ;
+    rdfs:comment "Un médecin peut souscrire aux données des capteurs des postes de dialyse à condition que le poste soit attribué à un de ses patients" ;
+    mqsec:order 3 ;
+    mqsec:condition-action "subscribe" ; #subscribe
+    mqsec:condition-target "UMD/Salle_dialyse/[0-z]*/[0-z]*/Log" ;
+    sh:condition [
+      sh:sparql [
+        a sh:SPARQLConstraint ;
+        sh:prefixes mqsec: ,smd: ;
+        sh:select """
+          PREFIX mqsec: <http://bruno.univ-tln.fr/mqsec/1.0#>
+          PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+          PREFIX smd: <http://bruno.univ-tln.fr/smartdemo/1.0#>
+          SELECT $this
+          WHERE {
+            $this mqsec:target ?topicLog .
+            $this mqsec:source ?medecinId .
+            ?medecin smd:role ?medecinId .
+            ?medecin smd:id ?medecinId .
+            BIND( REPLACE ( REPLACE(?topicLog,"/Log",""),"UMD/Objet/Medical/","" ) AS ?deviceId)
+            ?device smd:id ?DeviceId .
+            ?device smd:role smd:device .
+            ?device smd:patient ?patient .
+            ?patient smd:medecin ?medecin .
+          }
+          """;
+      ]
+    ] ;
+    mqsec:decision mqsec:allow .
+    #recuperer deviceId
+
+
+
+
+
+
+
+#Durant une séance de dialyse un médecin ne peut pas suivre plus de 8 patients. Il ne peut s’abonner aux données d’un capteur que si ce capteur est attribué à un patient qu’il suit déjà ou si il est abonné aux données de moins de 8 patients différents en cours de séance.
+
+
+
+smd:rule9
+    a mqsec:pepEventRule ;
+    rdfs:label "Rule 9" ;
+    rdfs:comment "Durant une seance de dialyse un medecin ne peut pas suivre plus de 8 patient " ;
+    mqsec:order 3 ;
+    mqsec:condition-action "subscribe" ; #subscribe
+    mqsec:condition-target "UMD/Objet/Medical/[0-z]*/Log" ;
+    sh:condition [
+      sh:sparql [
+        a sh:SPARQLConstraint ;
+        sh:prefixes mqsec: ,smd: ;
+        sh:select """
+        PREFIX rdf:    <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+        PREFIX mqsec: <http://bruno.univ-tln.fr/mqsec/1.0#>
+        PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+        PREFIX smd: <http://bruno.univ-tln.fr/smartdemo/1.0#>
+        SELECT $this WHERE {
+            FILTER (?p > 8)
+            {
+                 SELECT  $this ?medecin (COUNT (?patient) as ?p) WHERE  {
+                    {
+                         SELECT  $this ?patient WHERE {
+                            ?mes2 rdf:type mqsec:pepEvent . ?mes2 mqsec:action ?action2 . ?mes2 mqsec:applicable-rule / mqsec:decision mqsec:allow .
+                            ?mes2 mqsec:target ?target2 . ?mes2 mqsec:timestamp ?timestamp2 . FILTER (?timestamp2 = ?t) .
+                            # BIND( CONCAT ("UMD/Objet/Medical/", ?deviceId, "/Log" ) AS ?d) . #   FILTER regex(?target, ?d ) .
+                            {
+                                SELECT $this ?device (MAX (?timestamp) as ?t) where {
+                                    #recupere la date du dernier message subscribe or unsubscribe pour chaque device
+                                    ?device smd:id ?deviceId . ?device smd:role smd:device . ?mes rdf:type mqsec:pepEvent .
+                                    ?mes mqsec:applicable-rule / mqsec:decision mqsec:allow . BIND( CONCAT ("UMD/Objet/Medical/", ?deviceId, "/Log" ) AS ?d) .
+                                    ?mes mqsec:target ?target . FILTER regex(?target, ?d ) . ?mes mqsec:timestamp ?timestamp . ?mes mqsec:action ?action . FILTER regex(?action, "subscribe") .
+                                }
+                                GROUP BY ?device $this
+                            }
+                            FILTER regex(?action2, "subscribe") .
+                            ?device smd:role smd:device .?device smd:patient ?patient .
+                        }
+                         GROUP BY ?patient $this
+                      }
+                   ?medecin smd:role smd:medecin ;
+                 }
+                 GROUP BY ?medecin $this
+            }
+        }
+   """;
+   ]
+   ] ;
+   mqsec:decision mqsec:allow .
+#A MOINQ QUE CE CAPTEUR SOIT ATTRBUE A UN PATIENT QU'IL SUIT DEJA ....
+
+#* La présence d’un médecin néphrologue est obligatoire pendant toute la durée de la séance de dialyse. Il doit avoir souscrit aux alarmes du traitement de l’eau pendant toute la durée de la séance de dialyse.
+#Allow unsubscribe allarm de l'eau seuemement si pas horaire de seance de dialyse ou autre nephrologue abonne au alarme de l'eau
+smd:rule10
+    a mqsec:pepEventRule ;
+    rdfs:label "Rule 3" ;
+    rdfs:comment "Un medecin peut sourscrire au alarme du traitement de l'eau" ;
+    mqsec:order 3 ;
+    mqsec:condition-action "subscribe" ; #subscribe
+    mqsec:condition-target "UMD/Objet/Traitement_eau/[0-z]*/Alarm" ;
+    mqsec:decision mqsec:allow .
+
+smd:rule11
+    a mqsec:pepEventRule ;
+    rdfs:label "Rule 3" ;
+    rdfs:comment "Un medecin peut se desabonner des alarmes de traitement de l'eau a condition qu'il y ai quelqu'un d'autre qui soit abonné" ;
+    mqsec:order 3 ;
+    mqsec:condition-action "unsubscribe" ; #unsubscribe
+    mqsec:condition-target "UMD/Objet/Traitement_eau/[0-z]*/Alarm" ;
+    sh:condition [
+      sh:sparql [
+        a sh:SPARQLConstraint ;
+        sh:prefixes mqsec: ,smd: ;
+        sh:select """
+          PREFIX rdf:    <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+          PREFIX mqsec: <http://bruno.univ-tln.fr/mqsec/1.0#>
+          PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+          PREFIX smd: <http://bruno.univ-tln.fr/smartdemo/1.0#>
+          SELECT $this WHERE {
+            {
+              SELECT $this (COUNT(?medecin) AS ?m) WHERE {
+                ?mes rdf:type mqsec:pepEvent .
+                $mes mqsec:applicable-rule / mqsec:decision mqsec:allow .
+                ?mes mqsec:timestamp ?t .
+                ?medecin mqsec:id ?medecinId .
+                ?mes mqsec:source ?medecinId .
+                $this mqsec:target ?topic .
+                ?mes mqsec:target ?topic .
+                ?mes mqsec:action ?action .
+                FILTER regex(?action, "^subscribe") .
+                $this mqsec:source ?sourceId .
+                FILTER NOT EXISTS {
+                  ?mes mqsec:source ?sourceId .
+                }
+                {
+                    SELECT $this ?medecin (MAX (?timestamp) as ?t) where {
+                      $medecin mqsec:role mqsec:medecin .
+                      ?mes rdf:type mqsec:pepEvent .
+                      $mes mqsec:applicable-rule / mqsec:decision mqsec:allow .
+                      $this mqsec:target ?topic .
+                      ?mes mqsec:target ?topic .
+                      ?mes mqsec:timestamp ?timestamp .
+                      ?mes mqsec:action ?action .
+                      FILTER regex(?action, "subscribe") .
+                    }
+                    GROUP BY ?medecin $this
+                }
+            }
+            GROUP BY $this
+            }
+
+            FILTER (?m < 1)
+          }
+        """;
+        ]
+    ] ;
+    mqsec:decision mqsec:allow .
+
+smd:rule12
+    a mqsec:pepEventRule ;
+    rdfs:label "Rule 12" ;
+    rdfs:comment "Un medecin peut se desabonner des alarmes de traitement de l'eau a condition que ce la soit en dehors des horaire de seance" ;
+    mqsec:order 3 ;
+    mqsec:condition-action "unsubscribe" ;
+    mqsec:condition-target "UMD/Objet/Traitement_eau/[0-z]*/Alarm" ;
+    sh:condition [
+      sh:sparql [
+        a sh:SPARQLConstraint ;
+        sh:prefixes mqsec: ,smd: ;
+        sh:select """
+          PREFIX rdf:    <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+          PREFIX mqsec: <http://bruno.univ-tln.fr/mqsec/1.0#>
+          PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+          PREFIX smd: <http://bruno.univ-tln.fr/smartdemo/1.0#>
+          SELECT $this WHERE {
+              $this mqsec:timestamp ?timestamp .
+              ?seance rdf:type smd:dialysisSession .
+              ?seance smd:schedule / smd:startHour ?start .
+              ?seance smd:schedule / smd:endHour ?end .
+              FILTER (?timestamp >= ?start && ?timestamp <= ?end ).
+          }
+        """;
+        ]
+    ] ;
+    mqsec:decision mqsec:allow .
