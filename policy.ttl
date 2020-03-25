@@ -35,17 +35,21 @@ smd:ruleAH1
   rdfs:comment "" ;
   mqsec:order 2 ;
   mqsec:condition-action "publish" ; 
-  mqsec:condition-target "UMD/Patient/[0-z]*/Feuille_seance" ;
+  mqsec:condition-target-pattern "UMD/Patient/[0-z]*/Feuille_seance" ;
   sh:condition [
     sh:sparql [
       a sh:SPARQLConstraint ;
-      sh:prefixes mqsec: ,smd: ;
+      sh:prefixes mqsec: , smd: ;
       sh:select """
+        PREFIX mqsec: <http://bruno.univ-tln.fr/mqsec/1.0#>
+        PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+        PREFIX smd: <http://bruno.univ-tln.fr/smartdemo/1.0#>
         SELECT $this WHERE {
           $this mqsec:source ?sourceId .
           FILTER NOT EXISTS {
             ?source smd:id ?sourceId .
             ?source smd:role smd:applicationHemodialyse .
+        }
         }
       """;
       ]
@@ -59,28 +63,31 @@ smd:ruleAH1
 #Topic : UMD/Patient/Patient_id/Prescription UMD/Patient/Patient_id/Parametre_dialyse 
 #Action : Subscribe
 
-  smd:ruleAH2
-    a mqsec:pepEventRule ;
-    rdfs:label "Rule AH2" ;
-    rdfs:comment "L'application d'hemodialyse peut s'abonner au prescription et au parametre de dialyse" ;
-    mqsec:order 2 ;
-    mqsec:condition-action "subscribe" ; 
-    mqsec:condition-target "UMD/Patient/[0-z]*/(Prescription|Parametre_dialyse)" ;
-    sh:condition [
-      sh:sparql [
-        a sh:SPARQLConstraint ;
-        sh:prefixes mqsec: ,smd: ;
-        sh:select """
-          SELECT $this WHERE {
-            $this mqsec:source ?sourceId .
-            FILTER NOT EXISTS {
-              ?source smd:id ?sourceId .
-              ?source smd:role smd:applicationHemodialyse .
-          }
-        """;
-        ]
-      ] ;
-      mqsec:decision mqsec:allow .
+smd:ruleAH2
+  a mqsec:pepEventRule ;
+  rdfs:label "Rule AH2" ;
+  rdfs:comment "L'application d'hemodialyse peut s'abonner au prescription et au parametre de dialyse" ;
+  mqsec:order 2 ;
+  mqsec:condition-action "subscribe" ; 
+  mqsec:condition-target-pattern "UMD/Patient/[0-z]*/(Prescription|Parametre_dialyse)" ;
+  sh:condition [
+    sh:sparql [
+      a sh:SPARQLConstraint ;
+      sh:prefixes mqsec: ,smd: ;
+      sh:select """
+        PREFIX mqsec: <http://bruno.univ-tln.fr/mqsec/1.0#>
+        PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+        PREFIX smd: <http://bruno.univ-tln.fr/smartdemo/1.0#>
+        SELECT $this WHERE {
+          $this mqsec:source ?sourceId .
+          FILTER NOT EXISTS {
+            ?source smd:id ?sourceId .
+            ?source smd:role smd:applicationHemodialyse .
+        }}
+      """;
+      ]
+    ] ;
+    mqsec:decision mqsec:allow .
 
 ###################################################
 #Object connectes
@@ -91,24 +98,27 @@ smd:ruleAH1
 #Decision : Deny
 #Topic : */commande
 #Action : Subscribe
-smd:ruleOBJ1
+smd:ruleOBJ1 #ne fonctionne pas , probleme avec le UNION sans doute
   a mqsec:pepEventRule ;
   rdfs:label "Rule OBJ1" ;
   rdfs:comment "Si l'object est un actuateur il doit etre abonne au sujet de commande" ;
   mqsec:order 2 ;
   mqsec:condition-action "subscribe" ; 
-  mqsec:condition-target "*/Commande" ;
+  mqsec:condition-target-pattern "UMD/Salle_dialyse/Poste_hemodialyse/Device1/Commande|UMD/Object/Traitement_eau/Device1/Commande|UMD/Objet/Medical/Device_id/Commande" ;
   sh:condition [
     sh:sparql [
       a sh:SPARQLConstraint ;
       sh:prefixes mqsec: ,smd: ;
       sh:select """
+        PREFIX mqsec: <http://bruno.univ-tln.fr/mqsec/1.0#>
+        PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+        PREFIX smd: <http://bruno.univ-tln.fr/smartdemo/1.0#>
         SELECT $this WHERE {
           {
             $this mqsec:source ?sourceId .
             ?source smd:id ?sourceId .
             ?source smd:role smd:device .
-            FILTER NOT EXISTS {
+            FILTER EXISTS {
               ?source smd:type smd:actuateur .
             }
           }
@@ -138,29 +148,34 @@ smd:ruleOBJ2
   rdfs:comment "Si l'objet est un capteur il peut publier a un intervalle de temps regulier des message dans les logs" ;
   mqsec:order 2 ;
   mqsec:condition-action "publish" ; 
-  mqsec:condition-target "*/Log" ;
+  mqsec:condition-target-pattern "UMD/Salle_dialyse/Poste_hemodialyse/Device_id/Log|UMD/Objet/Medical/Device_id/Log|UMD/Object/Traitement_eau/Device1/Log" ;
   sh:condition [
     sh:sparql [
       a sh:SPARQLConstraint ;
       sh:prefixes mqsec: ,smd: ;
       sh:select """
+        PREFIX mqsec: <http://bruno.univ-tln.fr/mqsec/1.0#>
+        PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+        PREFIX smd: <http://bruno.univ-tln.fr/smartdemo/1.0#>
         SELECT $this WHERE {
-          {{
-            $this mqsec:source ?sourceId .
-            ?source smd:id ?sourceId .
-            ?source smd:role smd:device .
-            FILTER NOT EXISTS {
-              ?source smd:type smd:sensor .
-            }
-          }
-          UNION 
           {
-            $this mqsec:source ?sourceId .
-            FILTER NOT EXISTS {
+            {
+              $this mqsec:source ?sourceId .
               ?source smd:id ?sourceId .
               ?source smd:role smd:device .
+              FILTER NOT EXISTS {
+                ?source smd:type smd:sensor .
+              }
             }
-          }}
+            UNION 
+            {
+              $this mqsec:source ?sourceId .
+              FILTER NOT EXISTS {
+                ?source smd:id ?sourceId .
+                ?source smd:role smd:device .
+              }
+            }
+          }
           UNION
           {
               $this mqsec:source ?sourceId .
@@ -170,10 +185,10 @@ smd:ruleOBJ2
               BIND ((?timestamp - ?intervalLog) AS ?t )
 
               ?mes mqsec:timestamp ?timestampMes ;
-                  mqsec:action \"publish\" ;
-                  mqsec:target \"*/Log\" ;
+                  mqsec:action "publish" ;
+                  mqsec:target "*/Log" ;
                   mqsec:applicable-rule / mqsec:decision mqsec:allow . 
-              FILTER NOT EXISTS (?timestampMes > ?t )
+              FILTER (?timestampMes <= ?t )
           }
           
         }
@@ -193,12 +208,15 @@ smd:ruleOBJ3
   rdfs:comment "Si l'objet est un capteur il peut publier a un intervalle de temps regulier des message dans les alarmes" ;
   mqsec:order 2 ;
   mqsec:condition-action "publish" ; 
-  mqsec:condition-target "*/Alarm" ;
+  mqsec:condition-target-pattern "UMD/Salle_dialyse/Poste_hemodialyse/Device_id/Alarme|UMD/Objet/Medical/Device_id/Alarme|UMD/Objet/Traitement_eau/Device_id/Alarme" ;
   sh:condition [
     sh:sparql [
       a sh:SPARQLConstraint ;
       sh:prefixes mqsec: ,smd: ;
       sh:select """
+        PREFIX mqsec: <http://bruno.univ-tln.fr/mqsec/1.0#>
+        PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+        PREFIX smd: <http://bruno.univ-tln.fr/smartdemo/1.0#>
         SELECT $this WHERE {
           {{
             $this mqsec:source ?sourceId .
@@ -228,7 +246,7 @@ smd:ruleOBJ3
                   mqsec:action \"publish\" ;
                   mqsec:target \"*/Log\" ;
                   mqsec:applicable-rule / mqsec:decision mqsec:allow . 
-              FILTER NOT EXISTS (?timestampMes > ?t )
+              FILTER (!(?timestampMes > ?t ))
           }
           
         }
@@ -254,6 +272,10 @@ smd:ruleOBJ4
       a sh:SPARQLConstraint ;
       sh:prefixes mqsec: ,smd: ;
       sh:select """
+        PREFIX mqsec: <http://bruno.univ-tln.fr/mqsec/1.0#>
+        PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+        PREFIX smd: <http://bruno.univ-tln.fr/smartdemo/1.0#>
+        PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
         SELECT $this WHERE { 
           {{
             $this mqsec:source ?sourceId .
@@ -269,7 +291,7 @@ smd:ruleOBJ4
             ?seance rdf:type smd:dialysisSession .
             ?seance smd:schedule / smd:startHour ?start .
             ?seance smd:schedule / smd:endHour ?end .
-            FILTER NOT EXIST (?timestamp > start || ?timestamp < ?end )
+            FILTER  (!(?timestamp > ?start || ?timestamp < ?end ))
           }}
           UNION
           {
@@ -291,7 +313,6 @@ smd:ruleOBJ4
     ] ;
     mqsec:decision mqsec:Allow .
 
-
 #OBJ5
 #Un object connecte de type actuateur peut souscrire au commande 
 #Decision : Allow
@@ -309,6 +330,9 @@ smd:ruleOBJ5
       a sh:SPARQLConstraint ;
       sh:prefixes mqsec: ,smd: ;
       sh:select """
+             PREFIX mqsec: <http://bruno.univ-tln.fr/mqsec/1.0#>
+        PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+        PREFIX smd: <http://bruno.univ-tln.fr/smartdemo/1.0#>
         SELECT $this WHERE {
           {
             $this mqsec:source ?sourceId .
@@ -351,6 +375,9 @@ smd:ruleOBJ6
       a sh:SPARQLConstraint ;
       sh:prefixes mqsec: ,smd: ;
       sh:select """
+             PREFIX mqsec: <http://bruno.univ-tln.fr/mqsec/1.0#>
+        PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+        PREFIX smd: <http://bruno.univ-tln.fr/smartdemo/1.0#>
         SELECT $this WHERE {
           {
             $this mqsec:source ?sourceId .
@@ -397,6 +424,9 @@ smd:ruleTEC1
       a sh:SPARQLConstraint ;
       sh:prefixes mqsec: ,smd: ;
       sh:select """
+        PREFIX mqsec: <http://bruno.univ-tln.fr/mqsec/1.0#>
+        PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+        PREFIX smd: <http://bruno.univ-tln.fr/smartdemo/1.0#>
         SELECT $this WHERE { 
           {
             $this mqsec:source ?sourceId .
@@ -410,14 +440,14 @@ smd:ruleTEC1
               $this mqsec:source ?sourceId .
               $this mqsec:timestamp ?timestamp .
               ?source smd:id ?sourceId .
-              BIND ((?timestamp - PT10.000S^^xsd:duration) AS ?t )
+              BIND ((?timestamp - "PT10.000S"^^xsd:duration) AS ?t )
 
               ?mes mqsec:timestamp ?timestampMes ;
-                  mqsec:action \"publish\" ;
-                  mqsec:target \"UMD/Object/Traitement_eau/Device_id/Commande\" ;
-                  mqsec:source ?sourceId ;
-                  mqsec:applicable-rule / mqsec:decision mqsec:allow . 
-              FILTER NOT EXISTS (?timestampMes > ?t )
+                   mqsec:action \"publish\" ;
+                   mqsec:target \"UMD/Object/Traitement_eau/Device_id/Commande\" ;
+                   mqsec:source ?sourceId ;
+                   mqsec:applicable-rule / mqsec:decision mqsec:allow . 
+              FILTER (!(?timestampMes > ?t ))
           }
           
         }
@@ -425,8 +455,6 @@ smd:ruleTEC1
       ]
     ] ;
     mqsec:decision mqsec:deny .
-
-    Un technicien 
 
 #TEC2
 #Un technicien de la qualite de l'eau peut soucrire au alarme et au log du traitement de l'eau 
@@ -446,13 +474,15 @@ smd:ruleTEC2
       a sh:SPARQLConstraint ;
       sh:prefixes mqsec: ,smd: ;
       sh:select """
+             PREFIX mqsec: <http://bruno.univ-tln.fr/mqsec/1.0#>
+        PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+        PREFIX smd: <http://bruno.univ-tln.fr/smartdemo/1.0#>
         SELECT $this WHERE {
-         
-            $this mqsec:source ?sourceId .
-            FILTER NOT EXISTS {
-              ?source smd:id ?sourceId .
-              ?source smd:role smd:WaterTechnician .
-          
+          $this mqsec:source ?sourceId .
+          FILTER NOT EXISTS {
+            ?source smd:id ?sourceId .
+            ?source smd:role smd:WaterTechnician .
+          }
         }
       """;
       ]
@@ -477,12 +507,17 @@ smd:ruleTec3
         a sh:SPARQLConstraint ;
         sh:prefixes mqsec: ,smd: ;
         sh:select """
+        PREFIX rdf:    <http://www.w3.org/1999/02/22-rdf-syntax-ns#> 
+        PREFIX mqsec: <http://bruno.univ-tln.fr/mqsec/1.0#>
+        PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+        PREFIX smd: <http://bruno.univ-tln.fr/smartdemo/1.0#>
           SELECT $this WHERE {
             {
               $this mqsec:source ?sourceId .
               FILTER NOT EXISTS {
                 ?source smd:id ?sourceId .
-                ?source smd:role smd:nurse .
+                ?source smd:role smd:WaterTechnician .
+              }
             }
             UNION
             {
@@ -490,13 +525,14 @@ smd:ruleTec3
               ?seance rdf:type smd:dialysisSession .
               ?seance smd:schedule / smd:startHour ?start .
               ?seance smd:schedule / smd:endHour ?end .
-              FILTER (?timestamp > start || ?timestamp < ?end )
+              FILTER (?timestamp > ?start || ?timestamp < ?end )
             }
           }
         """;
         ]
     ] ;
     mqsec:decision mqsec:allow .
+
 
 ###################################################
 #Patient 
@@ -513,7 +549,7 @@ smd:PA1
       rdfs:label "Rule patient1" ;
       rdfs:comment "Un patient peut soucrire au topic qui le concerne ";
       mqsec:order 2;
-      mqsec:condition-target-pattern "UMD/Patient/*" ;
+      mqsec:condition-target-pattern "UMD/Patient/" ;
       mqsec:condition-action "subscribe" ;
       sh:condition [
           sh:sparql [
@@ -569,7 +605,54 @@ smd:PA2
               SELECT $this
               WHERE {
                 {
-                 trouver le patient d'un device #TODO
+                  $this mqsec:source ?sourceId .
+                  $this mqsec:target ?target .
+                  FILTER NOT EXISTS {
+                    BIND ( REPLACE (REPLACE(?target, "UMD/Object/Medical/",""),"/Log","") AS ?deviceId) .
+                    ?device smd:id ?deviceId .
+                    ?device smd:patient ?sourceId .
+                  }
+                }
+                UNION
+                { 
+                  $this mqsec:source ?sourceId .
+                  FILTER NOT EXISTS {
+                    ?source smd:id ?sourceId .
+                    ?source smd:role smd:patient .
+                  }
+                }
+              }
+
+              """ ;
+          ]
+      ] ;
+      mqsec:decision mqsec:allow .
+
+smd:PA2BIS
+    a mqsec:pepEventRule ;
+      rdfs:label "Rule patient2" ;
+      rdfs:comment "Un patient peut soucrire au topic qui le concerne ";
+      mqsec:order 2;
+      mqsec:condition-target-pattern "UMD/Salle_dialyse/Poste_hemodialyse/Device_id/Log" ;
+      mqsec:condition-action "subscribe|unsubscribe" ;
+      sh:condition [
+          sh:sparql [
+            a sh:SPARQLConstraint ;   # This triple is optional
+            sh:prefixes mqsec: , smd: ;
+            sh:select """
+              PREFIX mqsec: <http://bruno.univ-tln.fr/mqsec/1.0#>
+              PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+              PREFIX smd: <http://bruno.univ-tln.fr/smartdemo/1.0#>
+              SELECT $this
+              WHERE {
+                {
+                  $this mqsec:source ?sourceId .
+                  $this mqsec:target ?target .
+                  FILTER NOT EXISTS {
+                    BIND ( REPLACE (REPLACE(?target, "UMD/Salle_dialyse/Poste_hemodialyse",""),"/Log","") AS ?deviceId) .
+                    ?device smd:id ?deviceId .
+                    ?device smd:patient ?sourceId .
+                  }
                 }
                 UNION
                 { 
@@ -608,11 +691,15 @@ smd:Nurse1
         a sh:SPARQLConstraint ;
         sh:prefixes mqsec: ,smd: ;
         sh:select """
+          PREFIX mqsec: <http://bruno.univ-tln.fr/mqsec/1.0#>
+          PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+          PREFIX smd: <http://bruno.univ-tln.fr/smartdemo/1.0#>
           SELECT $this WHERE {
             $this mqsec:source ?sourceId .
             FILTER NOT EXISTS {
               ?source smd:id ?sourceId .
               ?source smd:role smd:nurse .
+            }
           }
         """;
         ]
@@ -637,12 +724,17 @@ smd:ruleNurse2
         a sh:SPARQLConstraint ;
         sh:prefixes mqsec: ,smd: ;
         sh:select """
+          PREFIX mqsec: <http://bruno.univ-tln.fr/mqsec/1.0#>
+          PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+          PREFIX smd: <http://bruno.univ-tln.fr/smartdemo/1.0#>
+          PREFIX rdf:    <http://www.w3.org/1999/02/22-rdf-syntax-ns#> 
           SELECT $this WHERE {
             {
               $this mqsec:source ?sourceId .
               FILTER NOT EXISTS {
                 ?source smd:id ?sourceId .
                 ?source smd:role smd:nurse .
+              }
             }
             UNION
             {
@@ -650,7 +742,7 @@ smd:ruleNurse2
               ?seance rdf:type smd:dialysisSession .
               ?seance smd:schedule / smd:startHour ?start .
               ?seance smd:schedule / smd:endHour ?end .
-              FILTER NOT EXIST (?timestamp > ?start && ?timestamp < ?end )
+              FILTER (!(?timestamp > ?start && ?timestamp < ?end ))
             }
           }
         """;
@@ -676,60 +768,70 @@ smd:ruleNurse3
         a sh:SPARQLConstraint ;
         sh:prefixes mqsec: ,smd: ;
         sh:select """
+          PREFIX mqsec: <http://bruno.univ-tln.fr/mqsec/1.0#>
+          PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+          PREFIX smd: <http://bruno.univ-tln.fr/smartdemo/1.0#>
+          PREFIX rdf:    <http://www.w3.org/1999/02/22-rdf-syntax-ns#> 
           SELECT $this WHERE {
-           {{ {
-              $this mqsec:source ?sourceId .
-              FILTER NOT EXISTS {
-                ?source smd:id ?sourceId .
-                ?source smd:role smd:nurse .
+            {
+              { 
+                {
+                  $this mqsec:source ?sourceId .
+                  FILTER NOT EXISTS {
+                    ?source smd:id ?sourceId .
+                    ?source smd:role smd:nurse .
+                  }
+                }
+                UNION
+                {
+                  #en dehors des seance de dialyse
+                  $this mqsec:timestamp ?timestamp .
+                  ?seance rdf:type smd:dialysisSession .
+                  ?seance smd:schedule / smd:startHour ?start .
+                  ?seance smd:schedule / smd:endHour ?end .
+                  FILTER (!(?timestamp > ?start && ?timestamp < ?end ))
+                }
+              }
+              UNION
+              {
+                #Il y a deja un autre patient (unautre message a ete publie dans le topic durant cette seance dialyse)
+                $this mqsec:timestamp ?timestamp .
+                ?seance smd:schedule / smd:startHour ?start .
+                ?seance smd:schedule / smd:endHour ?end .
+                FILTER (?timestamp > ?start && ?timestamp < ?end )
+
+                $this mqsec:target ?topic .
+
+                ?mes mqsec:target ?topic .
+                ?mes mqsec:timestamp ?t .
+                ?mes mqsec:applicable-rule / mqsec:decision mqsec:allow .
+                FILTER (?t > ?start && ?t < ?end)
+
+              }
             }
             UNION
             {
-              #en dehors des seance de dialyse
-              $this mqsec:timestamp ?timestamp .
-              ?seance rdf:type smd:dialysisSession .
-              ?seance smd:schedule / smd:startHour ?start .
-              ?seance smd:schedule / smd:endHour ?end .
-              FILTER NOT EXIST (?timestamp > ?start && ?timestamp < ?end )
-            }}
-            UNION
-            {
-              #Il y a deja un autre patient (unautre message a ete publie dans le topic durant cette seance dialyse)
-              $this mqsec:timestamp ?timestamp .
-              ?seance smd:schedule / smd:startHour ?start .
-              ?seance smd:schedule / smd:endHour ?end .
-              FILTER (?timestamp > ?start && ?timestamp < ?end )
-
-              $this mqsec:target ?topic .
-
-              ?mes mqsec:target ?topic .
-              ?mes mqsec:timestamp ?t .
-              ?mes mqsec:applicable-rule / mqsec:decision mqsec:allow
-              FILTER (?t > ?start && ?t < ?end)
-
-            }}
-            UNION
-            {
               #L'infirmier a deja installe 4 patient durant cette seance de dialyse
+              {
               SELECT $this ( COUNT ( ?patient ) AS ?nbPatient ){
                 $this mqsec:timestamp ?timestamp .
                 ?seance smd:schedule / smd:startHour ?start .
                 ?seance smd:schedule / smd:endHour ?end .
                 FILTER (?timestamp > ?start && ?timestamp < ?end )
 
-                $this mqsec:source ?source
-                ?mes mqsec:source ?source
+                $this mqsec:source ?source .
+                ?mes mqsec:source ?source .
                 ?mes mqsec:timestamp ?t .
-                ?mes mqsec:applicable-rule / mqsec:decision mqsec:allow
+                ?mes mqsec:applicable-rule / mqsec:decision mqsec:allow .
                 FILTER (?t > ?start && ?t < ?end)
-                ?mes mqsec:target ?target 
-                FILTER (REGEX (?target , \"UMD/Object/Medical/[0-z]*/Patient\")
+                ?mes mqsec:target ?target .
+                FILTER (REGEX (?target , \"UMD/Object/Medical/[0-z]*/Patient\"))
                 BIND (?target as ?deviceId)
                 ?device smd:id ?deviceId .
-                ?device smd:patient ?patient
+                ?device smd:patient ?patient .
               }
               GROUP BY $this
-                
+                }
               FILTER (?nbpatient >= 4)
             }
           }
@@ -755,27 +857,32 @@ sh:condition [
     a sh:SPARQLConstraint ;
     sh:prefixes mqsec: ,smd: ;
     sh:select """
+      PREFIX mqsec: <http://bruno.univ-tln.fr/mqsec/1.0#>
+      PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+      PREFIX smd: <http://bruno.univ-tln.fr/smartdemo/1.0#>
+      PREFIX rdf:    <http://www.w3.org/1999/02/22-rdf-syntax-ns#> 
       SELECT $this WHERE {
         {
           $this mqsec:source ?sourceId .
           FILTER NOT EXISTS {
             ?source smd:id ?sourceId .
             ?source smd:role smd:nurse .
+          }
         }
         UNION
         {
-          $this mqsec:timestamp ?t
+          $this mqsec:timestamp ?t .
           ?seance rdf:type smd:dialysisSession .
           ?seance smd:schedule / smd:startHour ?start .
           ?seance smd:schedule / smd:endHour ?end .
-          FILTER (?timestamp > start && ?timestamp < ?end )
+          FILTER (?timestamp > ?start && ?timestamp < ?end )
 
           ?mes mqsec:timestamp ?timestamp .
 
           ?mes mqsec:action \"publish\" .
           ?mes mqsec:applicable-rule / mqsec:decision mqsec:allow .
           ?mes mqsec:target \"UMD/Objet/Medical/Device_id/Patient\" .
-          FILTER NOT EXIST (?timestamp > start && ?timestamp < ?end )
+          FILTER (!(?timestamp > ?start && ?timestamp < ?end ))
         }
       }
     """;
@@ -795,27 +902,32 @@ sh:condition [
     a sh:SPARQLConstraint ;
     sh:prefixes mqsec: ,smd: ;
     sh:select """
-      SELECT $this WHERE {
+        PREFIX mqsec: <http://bruno.univ-tln.fr/mqsec/1.0#>
+        PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+        PREFIX smd: <http://bruno.univ-tln.fr/smartdemo/1.0#>
+        PREFIX rdf:    <http://www.w3.org/1999/02/22-rdf-syntax-ns#> 
+        SELECT $this WHERE {
         {
           $this mqsec:source ?sourceId .
           FILTER NOT EXISTS {
             ?source smd:id ?sourceId .
             ?source smd:role smd:nurse .
+          }
         }
         UNION
         {
-          $this mqsec:timestamp ?t
+          $this mqsec:timestamp ?t .
           ?seance rdf:type smd:dialysisSession .
           ?seance smd:schedule / smd:startHour ?start .
           ?seance smd:schedule / smd:endHour ?end .
-          FILTER (?timestamp > start && ?timestamp < ?end )
+          FILTER (?timestamp > ?start && ?timestamp < ?end )
 
           ?mes mqsec:timestamp ?timestamp .
 
           ?mes mqsec:action \"publish\" .
           ?mes mqsec:applicable-rule / mqsec:decision mqsec:allow .
           ?mes mqsec:target \"UMD/Salle_dialyse/Poste_hemodialyse/Patient\" .
-          FILTER NOT EXIST (?timestamp > start && ?timestamp < ?end )
+          FILTER  (!(?timestamp > ?start && ?timestamp < ?end ))
         }
       }
     """;
@@ -841,12 +953,15 @@ sh:condition [
     a sh:SPARQLConstraint ;
     sh:prefixes mqsec: ,smd: ;
     sh:select """
-      SELECT $this WHERE {
-        
-          $this mqsec:source ?sourceId .
-          FILTER NOT EXISTS {
-            ?source smd:id ?sourceId .
-            ?source smd:role smd:nurse .
+      PREFIX mqsec: <http://bruno.univ-tln.fr/mqsec/1.0#>
+      PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+      PREFIX smd: <http://bruno.univ-tln.fr/smartdemo/1.0#>
+      SELECT $this WHERE {  
+        $this mqsec:source ?sourceId .
+        FILTER NOT EXISTS {
+          ?source smd:id ?sourceId .
+          ?source smd:role smd:nurse .
+        }
       }
     """;
     ]
@@ -871,12 +986,15 @@ sh:condition [
     a sh:SPARQLConstraint ;
     sh:prefixes mqsec: ,smd: ;
     sh:select """
+           PREFIX mqsec: <http://bruno.univ-tln.fr/mqsec/1.0#>
+        PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+        PREFIX smd: <http://bruno.univ-tln.fr/smartdemo/1.0#>
       SELECT $this WHERE {
-        
-          $this mqsec:source ?sourceId .
-          FILTER NOT EXISTS {
-            ?source smd:id ?sourceId .
-            ?source smd:role smd:nurse .
+        $this mqsec:source ?sourceId .
+        FILTER NOT EXISTS {
+          ?source smd:id ?sourceId .
+          ?source smd:role smd:nurse .
+        }
       }
     """;
     ]
@@ -901,12 +1019,16 @@ sh:condition [
     a sh:SPARQLConstraint ;
     sh:prefixes mqsec: ,smd: ;
     sh:select """
+      PREFIX mqsec: <http://bruno.univ-tln.fr/mqsec/1.0#>
+      PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+      PREFIX smd: <http://bruno.univ-tln.fr/smartdemo/1.0#>
       SELECT $this WHERE {
         
-          $this mqsec:source ?sourceId .
-          FILTER NOT EXISTS {
-            ?source smd:id ?sourceId .
-            ?source smd:role smd:nurse .
+        $this mqsec:source ?sourceId .
+        FILTER NOT EXISTS {
+          ?source smd:id ?sourceId .
+          ?source smd:role smd:nurse .
+        }
       }
     """;
     ]
@@ -916,34 +1038,10 @@ mqsec:decision mqsec:allow .
 #Nurse8
 #L'infirmier durant une seance de dialyse peut souscrire un appareil medical s'il ne suit pas deja quatre patient ou qu'il suit deja ce patient
 #Decission : Allow
-#Topic : UMD/Salle_dialyse/Poste_hemodialyse/Device_id/Log ou UMD/Object/Medical/Device_id/logs
+#Topic : UMD/Salle_dialyse/Poste_hemodialyse/Device_id/Log ou UMD/Object/Medical/Device_id/Log
 #Action : Subscribe
 
 smd:ruleNurse8
-a mqsec:pepEventRule ;
-rdfs:label "Rule Nurse8" ;
-rdfs:comment "L'infirmier durant une seance de dialyse peut souscrire un appareil medical s'il ne suit pas deja quatre patient ou qu'il suit deja ce patient" ;
-mqsec:order 3 ;
-mqsec:condition-action "subscribe" ;
-mqsec:condition-target "UMD/Object/Traitement_eau/Device_id/Alarm" ;
-sh:condition [
-  sh:sparql [
-    a sh:SPARQLConstraint ;
-    sh:prefixes mqsec: ,smd: ;
-    sh:select """
-      SELECT $this WHERE {
-        
-          $this mqsec:source ?sourceId .
-          FILTER NOT EXISTS {
-            ?source smd:id ?sourceId .
-            ?source smd:role smd:nurse .
-      }
-    """;
-    ]
-] ;
-mqsec:decision mqsec:allow .
-
-smd:ruleNurse3
     a mqsec:pepEventRule ;
     rdfs:label "Rule nurse3" ;
     rdfs:comment "" ;
@@ -955,63 +1053,72 @@ smd:ruleNurse3
         a sh:SPARQLConstraint ;
         sh:prefixes mqsec: ,smd: ;
         sh:select """
+          PREFIX mqsec: <http://bruno.univ-tln.fr/mqsec/1.0#>
+          PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+          PREFIX smd: <http://bruno.univ-tln.fr/smartdemo/1.0#>
+          PREFIX rdf:    <http://www.w3.org/1999/02/22-rdf-syntax-ns#> 
           SELECT $this WHERE {
-           {{ {
-              $this mqsec:source ?sourceId .
-              FILTER NOT EXISTS {
-                ?source smd:id ?sourceId .
-                ?source smd:role smd:nurse .
+            {
+              { 
+                {
+                  $this mqsec:source ?sourceId .
+                  FILTER NOT EXISTS {
+                    ?source smd:id ?sourceId .
+                    ?source smd:role smd:nurse .
+                  }
+                }
+                UNION
+                {
+                  #en dehors des seance de dialyse
+                  $this mqsec:timestamp ?timestamp .
+                  ?seance rdf:type smd:dialysisSession .
+                  ?seance smd:schedule / smd:startHour ?start .
+                  ?seance smd:schedule / smd:endHour ?end .
+                  FILTER (!(?timestamp > ?start && ?timestamp < ?end ))
+                }
+              }
+              UNION
+              {
+                #Il y a deja un autre patient (unautre message a ete publie dans le topic durant cette seance dialyse)
+                $this mqsec:timestamp ?timestamp .
+                ?seance smd:schedule / smd:startHour ?start .
+                ?seance smd:schedule / smd:endHour ?end .
+                FILTER (?timestamp > ?start && ?timestamp < ?end )
+
+                $this mqsec:target ?topic .
+
+                ?mes mqsec:target ?topic .
+                ?mes mqsec:timestamp ?t .
+                ?mes mqsec:applicable-rule / mqsec:decision mqsec:allow .
+                FILTER (?t > ?start && ?t < ?end)
+              }
             }
             UNION
             {
-              #en dehors des seance de dialyse
-              $this mqsec:timestamp ?timestamp .
-              ?seance rdf:type smd:dialysisSession .
-              ?seance smd:schedule / smd:startHour ?start .
-              ?seance smd:schedule / smd:endHour ?end .
-              FILTER NOT EXIST (?timestamp > ?start && ?timestamp < ?end )
-            }}
-            UNION
-            {
-              #Il y a deja un autre patient (unautre message a ete publie dans le topic durant cette seance dialyse)
-              $this mqsec:timestamp ?timestamp .
-              ?seance smd:schedule / smd:startHour ?start .
-              ?seance smd:schedule / smd:endHour ?end .
-              FILTER (?timestamp > ?start && ?timestamp < ?end )
-
-              $this mqsec:target ?topic .
-
-              ?mes mqsec:target ?topic .
-              ?mes mqsec:timestamp ?t .
-              ?mes mqsec:applicable-rule / mqsec:decision mqsec:allow
-              FILTER (?t > ?start && ?t < ?end)
-
-            }}
-            UNION
-            {
               #L'infirmier a deja installe 4 patient durant cette seance de dialyse
+              {
               SELECT $this ( COUNT ( ?patient ) AS ?nbPatient ){
                 $this mqsec:timestamp ?timestamp .
                 ?seance smd:schedule / smd:startHour ?start .
                 ?seance smd:schedule / smd:endHour ?end .
                 FILTER (?timestamp > ?start && ?timestamp < ?end )
 
-                $this mqsec:source ?source
-                ?mes mqsec:source ?source
+                $this mqsec:source ?source .
+                ?mes mqsec:source ?source .
                 ?mes mqsec:timestamp ?t .
-                ?mes mqsec:applicable-rule / mqsec:decision mqsec:allow
+                ?mes mqsec:applicable-rule / mqsec:decision mqsec:allow .
                 FILTER (?t > ?start && ?t < ?end)
                 ?mes mqsec:target ?target 
-                FILTER (REGEX (?target , \"UMD/Object/Medical/[0-z]*/Patient\")
+                FILTER (REGEX (?target , "UMD/Object/Medical/[0-z]*/Patient"))
                 BIND (?target as ?deviceId)
                 ?device smd:id ?deviceId .
                 ?device smd:patient ?patient
-              }
-              GROUP BY $this
-                
-              FILTER (?nbpatient >= 4)
             }
+            GROUP BY $this
+            }    
+            FILTER (?nbpatient >= 4)
           }
+        }
         """;
         ]
     ] ;
@@ -1020,7 +1127,7 @@ smd:ruleNurse3
 #Nurse9
 #Au minimum un infirmier doit etre connecte sur chaque sujet d'alarme.
 #Decission : Allow 
-#Topic : UMD/Salle_dialyse/Poste_hemodialyse/Device_id/Log ou UMD/Object/Medical/Device_id/log
+#Topic : UMD/Salle_dialyse/Poste_hemodialyse/Device_id/Alarm ou UMD/Object/Medical/Device_id/Alarm
 #Action : Subscribe
 
 smd:ruleNurse9
@@ -1029,17 +1136,21 @@ smd:ruleNurse9
     rdfs:comment "Au minimum un infirmier doit etre connecte sur chaque sujet d'alarme." ;
     mqsec:order 3 ;
     mqsec:condition-action "subscribe" ;
-    mqsec:condition-target "UMD/Salle_dialyse/Poste_hemodialyse/Device_id/Log|UMD/Object/Medical/Device_id/log" ;
+    mqsec:condition-target "UMD/Salle_dialyse/Poste_hemodialyse/Device_id/Alarm|UMD/Object/Medical/Device_id/Alarm" ;
     sh:condition [
       sh:sparql [
         a sh:SPARQLConstraint ;
         sh:prefixes mqsec: ,smd: ;
         sh:select """
+               PREFIX mqsec: <http://bruno.univ-tln.fr/mqsec/1.0#>
+        PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+        PREFIX smd: <http://bruno.univ-tln.fr/smartdemo/1.0#>
           SELECT $this WHERE {
               $this mqsec:source ?sourceId .
               FILTER NOT EXISTS {
                 ?source smd:id ?sourceId .
                 ?source smd:role smd:nurse .
+              }
           }
         """;
         ]
@@ -1064,17 +1175,21 @@ smd:ruleNurse10
         a sh:SPARQLConstraint ;
         sh:prefixes mqsec: ,smd: ;
         sh:select """
+               PREFIX mqsec: <http://bruno.univ-tln.fr/mqsec/1.0#>
+        PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+        PREFIX smd: <http://bruno.univ-tln.fr/smartdemo/1.0#>
           SELECT $this WHERE {
-            {
+            #{
               $this mqsec:source ?sourceId .
               FILTER NOT EXISTS {
                 ?source smd:id ?sourceId .
                 ?source smd:role smd:nurse .
-            }
-            UNION
-            {
+              }
+            #}
+            #UNION
+            #{
                 #TODO
-            }
+            #}
           }
         """;
         ]
@@ -1099,18 +1214,22 @@ smd:ruleNurse11
         a sh:SPARQLConstraint ;
         sh:prefixes mqsec: ,smd: ;
         sh:select """
+          PREFIX mqsec: <http://bruno.univ-tln.fr/mqsec/1.0#>
+          PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+          PREFIX smd: <http://bruno.univ-tln.fr/smartdemo/1.0#>
           SELECT $this WHERE {
-            {
-              $this mqsec:source ?sourceId .
-              FILTER NOT EXISTS {
-                ?source smd:id ?sourceId .
-                ?source smd:role smd:nurse .
+            $this mqsec:source ?sourceId .
+            FILTER NOT EXISTS {
+              ?source smd:id ?sourceId .
+              ?source smd:role smd:nurse .
             }
           }
         """;
         ]
     ] ;
     mqsec:decision mqsec:allow .
+
+
 
 #Nuse12
 #Un infirmier peut se desabonner des information d'un patient
@@ -1130,12 +1249,14 @@ smd:ruleNurse12
         a sh:SPARQLConstraint ;
         sh:prefixes mqsec: ,smd: ;
         sh:select """
+          PREFIX mqsec: <http://bruno.univ-tln.fr/mqsec/1.0#>
+          PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+          PREFIX smd: <http://bruno.univ-tln.fr/smartdemo/1.0#>
           SELECT $this WHERE {
-            {
-              $this mqsec:source ?sourceId .
-              FILTER NOT EXISTS {
-                ?source smd:id ?sourceId .
-                ?source smd:role smd:nurse .
+            $this mqsec:source ?sourceId .
+            FILTER NOT EXISTS {
+              ?source smd:id ?sourceId .
+              ?source smd:role smd:nurse .
             }
           }
         """;
@@ -1159,7 +1280,7 @@ smd:Med1
   rdfs:comment "Le medecin peut publier dans certain sujet des patients."@fr;
   mqsec:order 2 ;
   mqsec:condition-action "publish" ;
-  mqsec:condition-target-pattern "^UMD/Patient/[0-z]*/(Prescription|Nephrologue|Historique_medical|Parametre_dialyse)$" ;
+  mqsec:condition-target "UMD/Patient/[0-z]*/(Prescription|Nephrologue|Historique_medical|Parametre_dialyse)" ;
   sh:condition [
     sh:sparql [
       a sh:SPARQLConstraint ;
@@ -1195,8 +1316,6 @@ smd:Med1
   ] ;
   mqsec:decision mqsec:allow .
 
-#BIND ( CONCAT ("^UMD/Patient/", ?patientId) AS ?topic_reg) .
-
 #Med2
 #Un medecin peut s'abonner au dossier de son patient
 #Decision :Allow
@@ -1209,7 +1328,7 @@ smd:RuleMed2
     rdfs:comment "Le medecin peut souscrire dans les sujet des patients."@fr;
     mqsec:order 2 ;
     mqsec:condition-action "subscribe" ;
-    mqsec:condition-target-pattern "UMD/Patient/*" ;
+    mqsec:condition-target-pattern "^UMD/Patient/" ;
     sh:condition [
       sh:sparql [
         a sh:SPARQLConstraint ;
@@ -1251,7 +1370,7 @@ smd:RuleMed2
 #Topic : UMD/Salle_dialyse/Poste_hemodialyse/Device_id/Log ou UMD/Object/Medical/Device_id/Log
 #Action :Subscribe
 
-smd:ruleMed3
+smd:ruleMed3 #TODO
     a mqsec:pepEventRule ;
     rdfs:label "Rule med3" ;
     rdfs:comment "Un médecin peut souscrire aux données des capteurs médicaux à condition que le poste soit attribué à un de ses patients" ;
@@ -1286,7 +1405,7 @@ smd:ruleMed3
 
 
 
-smd:rule9
+smd:rule9Bis
     a mqsec:pepEventRule ;
     rdfs:label "Rule 9" ;
     rdfs:comment "Durant une seance de dialyse un medecin ne peut pas suivre plus de 8 patient " ;
@@ -1314,14 +1433,22 @@ smd:rule9
                             {
                                 SELECT $this ?device (MAX (?timestamp) as ?t) where {
                                     #recupere la date du dernier message subscribe or unsubscribe pour chaque device
-                                    ?device smd:id ?deviceId . ?device smd:role smd:device . ?mes rdf:type mqsec:pepEvent .
-                                    ?mes mqsec:applicable-rule / mqsec:decision mqsec:allow . BIND( CONCAT ("UMD/Objet/Medical/", ?deviceId, "/Log" ) AS ?d) .
-                                    ?mes mqsec:target ?target . FILTER regex(?target, ?d ) . ?mes mqsec:timestamp ?timestamp . ?mes mqsec:action ?action . FILTER regex(?action, "subscribe") .
+                                    ?device smd:id ?deviceId . 
+                                    ?device smd:role smd:device . 
+                                    ?mes rdf:type mqsec:pepEvent .
+                                    ?mes mqsec:applicable-rule / mqsec:decision mqsec:allow . 
+                                    BIND( CONCAT ("UMD/Objet/Medical/", ?deviceId, "/Log" ) AS ?d) .
+                                    ?mes mqsec:target ?target . 
+                                    FILTER regex(?target, ?d ) . 
+                                    ?mes mqsec:timestamp ?timestamp . 
+                                    ?mes mqsec:action ?action . 
+                                    FILTER regex(?action, "subscribe") .
                                 }
                                 GROUP BY ?device $this
                             }
                             FILTER regex(?action2, "subscribe") .
-                            ?device smd:role smd:device .?device smd:patient ?patient .
+                            ?device smd:role smd:device .
+                            ?device smd:patient ?patient .
                         }
                          GROUP BY ?patient $this
                       }
@@ -1370,7 +1497,7 @@ smd:RuleMed4
 #Topic : UMD/Object/Traitement_eau/Device_id/Alarm
 #Action : Unsubscribe
 
-smd:rule med7
+smd:rulemed7
     a mqsec:pepEventRule ;
     rdfs:label "Rule 12" ;
     rdfs:comment "Un medecin peut se desabonner des alarmes de traitement de l'eau a condition que ce la soit en dehors des horaire de seance" ;
@@ -1398,61 +1525,61 @@ smd:rule med7
     ] ;
     mqsec:decision mqsec:allow .
 
-    smd:rule11
-    a mqsec:pepEventRule ;
-    rdfs:label "Rule 3" ;
-    rdfs:comment "Un medecin peut se desabonner des alarmes de traitement de l'eau a condition qu'il y ai quelqu'un d'autre qui soit abonné" ;
-    mqsec:order 3 ;
-    mqsec:condition-action "unsubscribe" ; #unsubscribe
-    mqsec:condition-target "UMD/Objet/Traitement_eau/[0-z]*/Alarm" ;
-    sh:condition [
-      sh:sparql [
-        a sh:SPARQLConstraint ;
-        sh:prefixes mqsec: ,smd: ;
-        sh:select """
-          PREFIX rdf:    <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
-          PREFIX mqsec: <http://bruno.univ-tln.fr/mqsec/1.0#>
-          PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
-          PREFIX smd: <http://bruno.univ-tln.fr/smartdemo/1.0#>
-          SELECT $this WHERE {
-            {
-              SELECT $this (COUNT(?medecin) AS ?m) WHERE {
-                ?mes rdf:type mqsec:pepEvent .
-                $mes mqsec:applicable-rule / mqsec:decision mqsec:allow .
-                ?mes mqsec:timestamp ?t .
-                ?medecin mqsec:id ?medecinId .
-                ?mes mqsec:source ?medecinId .
-                $this mqsec:target ?topic .
-                ?mes mqsec:target ?topic .
-                ?mes mqsec:action ?action .
-                FILTER regex(?action, "^subscribe") .
-                $this mqsec:source ?sourceId .
-                FILTER NOT EXISTS {
-                  ?mes mqsec:source ?sourceId .
-                }
-                {
-                    SELECT $this ?medecin (MAX (?timestamp) as ?t) where {
-                      $medecin mqsec:role mqsec:medecin .
-                      ?mes rdf:type mqsec:pepEvent .
-                      $mes mqsec:applicable-rule / mqsec:decision mqsec:allow .
-                      $this mqsec:target ?topic .
-                      ?mes mqsec:target ?topic .
-                      ?mes mqsec:timestamp ?timestamp .
-                      ?mes mqsec:action ?action .
-                      FILTER regex(?action, "subscribe") .
-                    }
-                    GROUP BY ?medecin $this
-                }
-            }
-            GROUP BY $this
-            }
-
-            FILTER (?m < 1)
+smd:rule11
+  a mqsec:pepEventRule ;
+  rdfs:label "Rule 3" ;
+  rdfs:comment "Un medecin peut se desabonner des alarmes de traitement de l'eau a condition qu'il y ai quelqu'un d'autre qui soit abonné" ;
+  mqsec:order 3 ;
+  mqsec:condition-action "unsubscribe" ; #unsubscribe
+  mqsec:condition-target "UMD/Objet/Traitement_eau/[0-z]*/Alarm" ;
+  sh:condition [
+    sh:sparql [
+      a sh:SPARQLConstraint ;
+      sh:prefixes mqsec: ,smd: ;
+      sh:select """
+        PREFIX rdf:    <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+        PREFIX mqsec: <http://bruno.univ-tln.fr/mqsec/1.0#>
+        PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+        PREFIX smd: <http://bruno.univ-tln.fr/smartdemo/1.0#>
+        SELECT $this WHERE {
+          {
+            SELECT $this (COUNT(?medecin) AS ?m) WHERE {
+              ?mes rdf:type mqsec:pepEvent .
+              $mes mqsec:applicable-rule / mqsec:decision mqsec:allow .
+              ?mes mqsec:timestamp ?t .
+              ?medecin mqsec:id ?medecinId .
+              ?mes mqsec:source ?medecinId .
+              $this mqsec:target ?topic .
+              ?mes mqsec:target ?topic .
+              ?mes mqsec:action ?action .
+              FILTER regex(?action, "^subscribe") .
+              $this mqsec:source ?sourceId .
+              FILTER NOT EXISTS {
+                ?mes mqsec:source ?sourceId .
+              }
+              {
+                  SELECT $this ?medecin (MAX (?timestamp) as ?t) where {
+                    $medecin mqsec:role mqsec:medecin .
+                    ?mes rdf:type mqsec:pepEvent .
+                    $mes mqsec:applicable-rule / mqsec:decision mqsec:allow .
+                    $this mqsec:target ?topic .
+                    ?mes mqsec:target ?topic .
+                    ?mes mqsec:timestamp ?timestamp .
+                    ?mes mqsec:action ?action .
+                    FILTER regex(?action, "subscribe") .
+                  }
+                  GROUP BY ?medecin $this
+              }
           }
-        """;
-        ]
-    ] ;
-    mqsec:decision mqsec:allow .
+          GROUP BY $this
+          }
+
+          FILTER (?m < 1)
+        }
+      """;
+      ]
+  ] ;
+  mqsec:decision mqsec:allow .
 
 #Gen1
 #Un menbre du personnel ne peut pas s'abonner ou se desabonner en dehors de ses horaire de travail
@@ -1500,6 +1627,35 @@ smd:ruleGen1
   mqsec:decision mqsec:deny .
 
 
+# La politique de résolution de conflits peut être définie conformément à XACML
+## https://wiki.oasis-open.org/xacml/XACMLandRDF
+smd:conflict-resolution-policy
+  a mqsec:pepEventRule ;
+  rdfs:label "Conflict resolution policy" ;
+  rdfs:comment "La règle d'ordre le plus élevé s'applique, en cas d'égalité deny est retenu."@fr;
+  mqsec:conflict-resolution-policy <xacml:rule-combining-algorithm:ordered-deny-overrides> .
+
+
   # TODO Trouver un moyen plus de trouver qui a souscirt a quoi ....
 # TODO Verifeir que ce moyen fonctionne vraiment dans un ca sreeel
 
+
+
+#UMD/Patient/Patient_id/Prescription
+#UMD/Patient/Patient_id/Feuille_seance
+#UMD/Patient/Patient_id/Historique_medical
+#UMD/Patient/Patient_id/Recapitulatif_seance
+#UMD/Patient/Patient_id/Parametre_dialyse
+#UMD/Patient/Patient_id/Nephrologue
+
+#UMD/Salle_dialyse/Poste_hemodialyse/Patient
+#UMD/Salle_dialyse/Poste_hemodialyse/Device_id/Commande
+#UMD/Salle_dialyse/Poste_hemodialyse/Device_id/Log
+#UMD/Salle_dialyse/Poste_hemodialyse/Device_id/Alarme
+
+#UMD/Objet/Medical/Device_id/Patient
+#UMD/Objet/Medical/Device_id/Commande
+#UMD/Objet/Medical/Device_id/Log
+#UMD/Objet/Medical/Device_id/Alarme
+
+#UMD/Object/Traitement_eau/Device1/Commande

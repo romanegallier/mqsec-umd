@@ -1,11 +1,18 @@
 @prefix xsd:    <http://www.w3.org/2001/XMLSchema#> .
 @prefix smd:    <http://bruno.univ-tln.fr/smartdemo/1.0#> .
 @prefix mqsec:  <http://bruno.univ-tln.fr/mqsec/1.0#> .
-
+@prefix rdf:    <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs:   <http://www.w3.org/2000/01/rdf-schema#> .
 
 #    WATER_TRAITMENT = 1
 #    PATIENT_MONITORING = 2
 #    HEMODIALYSIS_STATION_MONITORING = 3
+
+mqsec:source a rdf:Property ;
+	rdfs:domain mqsec:pepEvent ;
+	rdfs:isDefinedBy <http://bruno.univ-tln.fr/mqsec/1.0#> ;
+	rdfs:label "source" ;
+	rdfs:range xsd:string .
 
 smd:medecin1
 		a mqsec:access-subject ;
@@ -61,6 +68,7 @@ smd:device1
 	a mqsec:acess-subsject ;
 		smd:id "device1" ;
 		smd:role smd:device ;
+		smd:type smd:actuateur ;
 		smd:intervalLog "PT10.000S"^^xsd:duration ;
 		smd:patient smd:patient1 .
 
@@ -95,6 +103,7 @@ smd:seanceDedialyse2
 
 smd:applicationHemodialyse
 	a mqsec:acess-subject ;
+	smd:id "applicationHemodialyse1" ;
 	smd:role smd:applicationHemodialyse .
 
 mqsec:denyDecision mqsec:decision mqsec:deny .
@@ -251,27 +260,90 @@ smd:e9
 		mqsec:source    "medecin1" ;
 		mqsec:target    "UMD/Salle_dialyse/PosteHemodialyse1/Device1/Log" .
 
-smd:e9
+smd:e10
 		a mqsec:pepEvent ;
 		mqsec:timestamp "2019-05-02T09:00:10Z"^^xsd:dateTime  ;
 		mqsec:action    "subscribe" ;
 		mqsec:source    "device1" ;
 		mqsec:target    "UMD/Salle_dialyse/PosteHemodialyse1/Device1/Log" .
 
-smd:e9
+smd:e11
 		a mqsec:pepEvent ;
 		mqsec:timestamp "2019-05-02T09:00:10Z"^^xsd:dateTime  ;
 		mqsec:action    "subscribe" ;
 		mqsec:source    "device2" ;
 		mqsec:target    "UMD/Salle_dialyse/PosteHemodialyse1/Device1/Log" .
 
-smd:e9
+smd:e12
 		a mqsec:pepEvent ;
 		mqsec:timestamp "2019-05-02T09:00:10Z"^^xsd:dateTime  ;
 		mqsec:action    "subscribe" ;
 		mqsec:source    "device3" ;
 		mqsec:target    "UMD/Salle_dialyse/PosteHemodialyse1/Device1/Log" .
 
+
+smd:e13
+	a mqsec:pepEvent ;
+	mqsec:timestamp "2019-05-02T09:00:10Z"^^xsd:dateTime  ;
+	mqsec:action    "publish" ;
+	mqsec:source    "applicationHemodialyse1" ;
+	mqsec:target    "UMD/Patient/Patient1/Feuille_seance" .
+
+smd:e14
+	a mqsec:pepEvent ;
+	mqsec:timestamp "2019-05-02T09:00:10Z"^^xsd:dateTime  ;
+	mqsec:action "subscribe" ;
+	mqsec:source "applicationHemodialyse1" ;
+	mqsec:target "UMD/Patient/Patient1/Prescription" .
+
+smd:e15
+	a mqsec:pepEvent ;
+	mqsec:timestamp "2019-05-02T09:00:10Z"^^xsd:dateTime  ;
+	mqsec:action "subscribe" ;
+	mqsec:source "applicationHemodialyse1" ;
+	mqsec:target "UMD/Patient/Patient1/Parametre_dialyse" .
+
+smd:eOBJ11
+	a mqsec:pepEvent ;
+	mqsec:timestamp "2019-05-02T09:00:10Z"^^xsd:dateTime  ;
+	mqsec:action "subscribe" ;
+	mqsec:source "Device1" ;
+	mqsec:target "UMD/Salle_dialyse/Poste_hemodialyse/Device1/Commande" .
+
+smd:eOBJ11_1
+	a mqsec:pepEvent ;
+	mqsec:timestamp "2019-05-02T09:00:10Z"^^xsd:dateTime  ;
+	mqsec:action "subscribe" ;
+	mqsec:source "Device1" ;
+	mqsec:target "UMD/Object/Traitement_eau/Device1/Commande" .
+
+smd:eOBJ11_2
+	a mqsec:pepEvent ;
+	mqsec:timestamp "2019-05-02T09:00:10Z"^^xsd:dateTime  ;
+	mqsec:action "subscribe" ;
+	mqsec:source "Device1" ;
+	mqsec:target "UMD/Objet/Medical/Device_id/Commande" .
+
+smd:eOBJ2_1
+	a mqsec:pepEvent ;
+	mqsec:timestamp "2019-05-02T09:00:10Z"^^xsd:dateTime  ;
+	mqsec:action "publish" ;
+	mqsec:source "Device1" ;
+	mqsec:target "UMD/Salle_dialyse/Poste_hemodialyse/Device_id/Log" .
+
+smd:eOBJ2_1
+	a mqsec:pepEvent ;
+	mqsec:timestamp "2019-05-02T09:00:10Z"^^xsd:dateTime  ;
+	mqsec:action "publish" ;
+	mqsec:source "Device1" ;
+	mqsec:target "UMD/Salle_dialyse/Poste_hemodialyse/Device_id/Log" .
+
+smd:eOBJ2_2
+	a mqsec:pepEvent ;
+	mqsec:timestamp "2019-05-02T09:00:10Z"^^xsd:dateTime  ;
+	mqsec:action "publish" ;
+	mqsec:source "Device1" ;
+	mqsec:target "Poste_hemodialyse/Device_id/Log" .
 
 
 
@@ -291,3 +363,6 @@ smd:e9
 #UMD/Objet/Medical/Device_id/Commande
 #UMD/Objet/Medical/Device_id/Log
 #UMD/Objet/Medical/Device_id/Alarme
+
+#UMD/Object/Traitement_eau/Device1/Commande
+
