@@ -35,7 +35,7 @@ smd:ruleAH1
   rdfs:comment "" ;
   mqsec:order 2 ;
   mqsec:condition-action "publish" ; 
-  mqsec:condition-target-pattern "UMD/Patient/[0-z]*/Feuille_seance" ;
+  mqsec:condition-target "UMD/Patient/[0-z]*/Feuille_seance" ;
   sh:condition [
     sh:sparql [
       a sh:SPARQLConstraint ;
@@ -69,7 +69,7 @@ smd:ruleAH2
   rdfs:comment "L'application d'hemodialyse peut s'abonner au prescription et au parametre de dialyse" ;
   mqsec:order 2 ;
   mqsec:condition-action "subscribe" ; 
-  mqsec:condition-target-pattern "UMD/Patient/[0-z]*/(Prescription|Parametre_dialyse)" ;
+  mqsec:condition-target "UMD/Patient/[0-z]*/(Prescription|Parametre_dialyse)" ;
   sh:condition [
     sh:sparql [
       a sh:SPARQLConstraint ;
@@ -104,7 +104,7 @@ smd:ruleOBJ1 #ne fonctionne pas , probleme avec le UNION sans doute
   rdfs:comment "Si l'object est un actuateur il doit etre abonne au sujet de commande" ;
   mqsec:order 2 ;
   mqsec:condition-action "subscribe" ; 
-  mqsec:condition-target-pattern "UMD/Salle_dialyse/Poste_hemodialyse/Device1/Commande|UMD/Object/Traitement_eau/Device1/Commande|UMD/Objet/Medical/Device_id/Commande" ;
+  mqsec:condition-target "UMD/(Salle_dialyse/Poste_hemodialyse|Object/(Traitement_eau|Medical))/[0-z]*/Commande" ;
   sh:condition [
     sh:sparql [
       a sh:SPARQLConstraint ;
@@ -148,7 +148,7 @@ smd:ruleOBJ2
   rdfs:comment "Si l'objet est un capteur il peut publier a un intervalle de temps regulier des message dans les logs" ;
   mqsec:order 2 ;
   mqsec:condition-action "publish" ; 
-  mqsec:condition-target-pattern "UMD/Salle_dialyse/Poste_hemodialyse/Device_id/Log|UMD/Objet/Medical/Device_id/Log|UMD/Object/Traitement_eau/Device1/Log" ;
+  mqsec:condition-target "UMD/Salle_dialyse/Poste_hemodialyse/[0-z]*/Log|UMD/Objet/Medical/[0-z]*/Log|UMD/Object/Traitement_eau/[0-z]*/Log" ;
   sh:condition [
     sh:sparql [
       a sh:SPARQLConstraint ;
@@ -208,7 +208,7 @@ smd:ruleOBJ3
   rdfs:comment "Si l'objet est un capteur il peut publier a un intervalle de temps regulier des message dans les alarmes" ;
   mqsec:order 2 ;
   mqsec:condition-action "publish" ; 
-  mqsec:condition-target-pattern "UMD/Salle_dialyse/Poste_hemodialyse/Device_id/Alarme|UMD/Objet/Medical/Device_id/Alarme|UMD/Objet/Traitement_eau/Device_id/Alarme" ;
+  mqsec:condition-target "UMD/Salle_dialyse/Poste_hemodialyse/[0-z]*/Alarme|UMD/Objet/Medical/[0-z]*/Alarme|UMD/Objet/Traitement_eau/[0-z]*/Alarme" ;
   sh:condition [
     sh:sparql [
       a sh:SPARQLConstraint ;
@@ -266,7 +266,7 @@ smd:ruleOBJ4
   rdfs:comment "Un object medical peut publier dans les logs ou dans les alarmes si il y a un patient configure et que c'est durant les sceances de dialyse" ;
   mqsec:order 2 ;
   mqsec:condition-action "publish" ; 
-  mqsec:condition-target "(UMD/Object/Medical/Device_id/(Log|Alarm))|(UMD/Salle_dialyse/Poste_hemodialyse/Device_id(Log|Alarm))" ;
+  mqsec:condition-target "(UMD/Object/Medical/[0-z]*/(Log|Alarm))|(UMD/Salle_dialyse/Poste_hemodialyse/[0-z]*(Log|Alarm))" ;
   sh:condition [
     sh:sparql [
       a sh:SPARQLConstraint ;
@@ -324,7 +324,7 @@ smd:ruleOBJ5
   rdfs:comment "Un object connecte de type actuateur peut souscrire au commande " ;
   mqsec:order 2 ;
   mqsec:condition-action "subscribe" ; 
-  mqsec:condition-target "*/Commande" ;
+  mqsec:condition-target-pattern "/Commande$" ;
   sh:condition [
     sh:sparql [
       a sh:SPARQLConstraint ;
@@ -369,7 +369,7 @@ smd:ruleOBJ6
   rdfs:comment "Un object du traitement de l'eau peut publier des logs. " ;
   mqsec:order 2 ;
   mqsec:condition-action "publish" ; 
-  mqsec:condition-target "*/Log" ;
+  mqsec:condition-target-pattern "/Log$" ;
   sh:condition [
     sh:sparql [
       a sh:SPARQLConstraint ;
@@ -418,7 +418,7 @@ smd:ruleTEC1
   rdfs:comment "Un technicien de la qualite de l'eau peut publier une commande par minute pour un objet" ;
   mqsec:order 2 ;
   mqsec:condition-action "publish" ; 
-  mqsec:condition-target "UMD/Object/Traitement_eau/Device_id/Commande" ;
+  mqsec:condition-target "UMD/Object/Traitement_eau/[0-z]*/Commande" ;
   sh:condition [
     sh:sparql [
       a sh:SPARQLConstraint ;
@@ -444,7 +444,7 @@ smd:ruleTEC1
 
               ?mes mqsec:timestamp ?timestampMes ;
                    mqsec:action \"publish\" ;
-                   mqsec:target \"UMD/Object/Traitement_eau/Device_id/Commande\" ;
+                   mqsec:target \"UMD/Object/Traitement_eau/[0-z]*/Commande\" ;
                    mqsec:source ?sourceId ;
                    mqsec:applicable-rule / mqsec:decision mqsec:allow . 
               FILTER (!(?timestampMes > ?t ))
@@ -468,7 +468,7 @@ smd:ruleTEC2
   rdfs:comment "Un technicien de la qualite de l'eau peut soucrire au alarme et au log du traitement de l'eau." ;
   mqsec:order 2 ;
   mqsec:condition-action "subscribe" ; 
-  mqsec:condition-target "UMD/Object/Traitement_eau/Device_id/(Alarm|Log)" ;
+  mqsec:condition-target "UMD/Object/Traitement_eau/[0-z]*/(Alarm|Log)" ;
   sh:condition [
     sh:sparql [
       a sh:SPARQLConstraint ;
@@ -501,7 +501,7 @@ smd:ruleTec3
     rdfs:comment "Un technicien de la qualite de l'eau peut desoucrire au alarme et au log du traitement de l'eau en dehors de ses horaires de travail" ;
     mqsec:order 3 ;
     mqsec:condition-action "publish" ;
-    mqsec:condition-target "UMD/Patient/Patient_id/Parametre_dialyse" ;
+    mqsec:condition-target "UMD/Patient/[0-z]*/Parametre_dialyse" ;
     sh:condition [
       sh:sparql [
         a sh:SPARQLConstraint ;
@@ -549,7 +549,7 @@ smd:PA1
       rdfs:label "Rule patient1" ;
       rdfs:comment "Un patient peut soucrire au topic qui le concerne ";
       mqsec:order 2;
-      mqsec:condition-target-pattern "UMD/Patient/" ;
+      mqsec:condition-target-pattern "^UMD/Patient/" ;
       mqsec:condition-action "subscribe" ;
       sh:condition [
           sh:sparql [
@@ -592,7 +592,7 @@ smd:PA2
       rdfs:label "Rule patient2" ;
       rdfs:comment "Un patient peut soucrire au topic qui le concerne ";
       mqsec:order 2;
-      mqsec:condition-target-pattern "UMD/Object/Medical/Device_id/Log" ;
+      mqsec:condition-target-pattern "UMD/Object/Medical/[0-z]*/Log" ;
       mqsec:condition-action "subscribe|unsubscribe" ;
       sh:condition [
           sh:sparql [
@@ -633,7 +633,7 @@ smd:PA2BIS
       rdfs:label "Rule patient2" ;
       rdfs:comment "Un patient peut soucrire au topic qui le concerne ";
       mqsec:order 2;
-      mqsec:condition-target-pattern "UMD/Salle_dialyse/Poste_hemodialyse/Device_id/Log" ;
+      mqsec:condition-target-pattern "UMD/Salle_dialyse/Poste_hemodialyse/[0-z]*/Log" ;
       mqsec:condition-action "subscribe|unsubscribe" ;
       sh:condition [
           sh:sparql [
@@ -685,7 +685,7 @@ smd:Nurse1
     rdfs:comment "Les infirmiers peuvent publier dans l'historique medical et le repatulatif de seance des patients" ;
     mqsec:order 3 ;
     mqsec:condition-action "publish" ;
-    mqsec:condition-target "UMD/Patient/Patient_id/(Historique_medical|Recapitulatif_seance)" ;
+    mqsec:condition-target "UMD/Patient/[0-z]*/(Historique_medical|Recapitulatif_seance)" ;
     sh:condition [
       sh:sparql [
         a sh:SPARQLConstraint ;
@@ -718,7 +718,7 @@ smd:ruleNurse2
     rdfs:comment "" ;
     mqsec:order 3 ;
     mqsec:condition-action "publish" ;
-    mqsec:condition-target "UMD/Patient/Patient_id/Parametre_dialyse" ;
+    mqsec:condition-target "UMD/Patient/[0-z]*/Parametre_dialyse" ;
     sh:condition [
       sh:sparql [
         a sh:SPARQLConstraint ;
@@ -762,7 +762,7 @@ smd:ruleNurse3
     rdfs:comment "" ;
     mqsec:order 3 ;
     mqsec:condition-action "publish" ;
-    mqsec:condition-target "UMD/Object/Medical/Device_id/Patient" ;
+    mqsec:condition-target "UMD/Object/Medical/[0-z]*/Patient" ;
     sh:condition [
       sh:sparql [
         a sh:SPARQLConstraint ;
@@ -851,7 +851,7 @@ rdfs:label "Rule Nurse4" ;
 rdfs:comment "Il est possible d'envoyer des commande a un object medical seulement apres qu'il est été attribue a un patient pour une seance de dialyse" ;
 mqsec:order 3 ;
 mqsec:condition-action "publish" ;
-mqsec:condition-target "UMD/Objet/Medical/Device_id/Commande" ;
+mqsec:condition-target "UMD/Objet/Medical/[0-z]*/Commande" ;
 sh:condition [
   sh:sparql [
     a sh:SPARQLConstraint ;
@@ -881,7 +881,7 @@ sh:condition [
 
           ?mes mqsec:action \"publish\" .
           ?mes mqsec:applicable-rule / mqsec:decision mqsec:allow .
-          ?mes mqsec:target \"UMD/Objet/Medical/Device_id/Patient\" .
+          ?mes mqsec:target \"UMD/Objet/Medical/[0-z]*/Patient\" .
           FILTER (!(?timestamp > ?start && ?timestamp < ?end ))
         }
       }
@@ -896,7 +896,7 @@ rdfs:label "Rule Nurse4Bis" ;
 rdfs:comment "Il est possible d'envoyer des commande a un object medical seulement apres qu'il est été attribue a un patient pour une seance de dialyse" ;
 mqsec:order 3 ;
 mqsec:condition-action "publish" ;
-mqsec:condition-target "UMD/Salle_dialyse/Poste_hemodialyse/Device_id/Commande" ;
+mqsec:condition-target "UMD/Salle_dialyse/Poste_hemodialyse/[0-z]*/Commande" ;
 sh:condition [
   sh:sparql [
     a sh:SPARQLConstraint ;
@@ -947,7 +947,7 @@ rdfs:label "Rule Nurse5" ;
 rdfs:comment "Un infirmier peut s'abonner a toute les données des patients " ;
 mqsec:order 3 ;
 mqsec:condition-action "subscribe" ;
-mqsec:condition-target "UMD/Patient/Patient_id/*" ;
+mqsec:condition-target-pattern "UMD/Patient/[0-z]*/" ;
 sh:condition [
   sh:sparql [
     a sh:SPARQLConstraint ;
@@ -980,7 +980,7 @@ rdfs:label "Rule Nurse6" ;
 rdfs:comment "Un infirmier peut s'abonner a toute les données des patients " ;
 mqsec:order 3 ;
 mqsec:condition-action "subscribe" ;
-mqsec:condition-target "UMD/Object/Medical/Device_id/Alarm|UMD/Salle_dialyse/Poste_hemodialyse/Device_id/Alarm" ;
+mqsec:condition-target "UMD/Object/Medical/[0-z]*/Alarm|UMD/Salle_dialyse/Poste_hemodialyse/[0-z]*/Alarm" ;
 sh:condition [
   sh:sparql [
     a sh:SPARQLConstraint ;
@@ -1013,7 +1013,7 @@ rdfs:label "Rule Nurse7" ;
 rdfs:comment "L'infirmier peut souscrire au alarme du traitment de l'eau  " ;
 mqsec:order 3 ;
 mqsec:condition-action "subscribe" ;
-mqsec:condition-target "UMD/Object/Traitement_eau/Device_id/Alarm" ;
+mqsec:condition-target "UMD/Object/Traitement_eau/[0-z]*/Alarm" ;
 sh:condition [
   sh:sparql [
     a sh:SPARQLConstraint ;
@@ -1047,7 +1047,7 @@ smd:ruleNurse8
     rdfs:comment "" ;
     mqsec:order 3 ;
     mqsec:condition-action "publish" ;
-    mqsec:condition-target "UMD/Object/Medical/Device_id/Patient" ;
+    mqsec:condition-target "UMD/Object/Medical/[0-z]*/Patient" ;
     sh:condition [
       sh:sparql [
         a sh:SPARQLConstraint ;
@@ -1136,7 +1136,7 @@ smd:ruleNurse9
     rdfs:comment "Au minimum un infirmier doit etre connecte sur chaque sujet d'alarme." ;
     mqsec:order 3 ;
     mqsec:condition-action "subscribe" ;
-    mqsec:condition-target "UMD/Salle_dialyse/Poste_hemodialyse/Device_id/Alarm|UMD/Object/Medical/Device_id/Alarm" ;
+    mqsec:condition-target "UMD/Salle_dialyse/Poste_hemodialyse/[0-z]*/Alarm|UMD/Object/Medical/[0-z]*/Alarm" ;
     sh:condition [
       sh:sparql [
         a sh:SPARQLConstraint ;
@@ -1169,7 +1169,7 @@ smd:ruleNurse10
     rdfs:comment "Un infirmier doit etre connecte a chaque sujet d'alarm" ;
     mqsec:order 3 ;
     mqsec:condition-action "unsubscribe" ;
-    mqsec:condition-target "UMD/Objet/Traitement_eau/Device_id/Alarm" ;
+    mqsec:condition-target "UMD/Objet/Traitement_eau/[0-z]*/Alarm" ;
     sh:condition [
       sh:sparql [
         a sh:SPARQLConstraint ;
@@ -1208,7 +1208,7 @@ smd:ruleNurse11
     rdfs:comment "Un infirmier doit etre connecte a chaque sujet d'alarm" ;
     mqsec:order 3 ;
     mqsec:condition-action "unsubscribe" ;
-    mqsec:condition-target "UMD/Object/Medical/Device_id/Log | UMD/Salle_dialyse/Poste_hemodialyse/Device_id/log" ;
+    mqsec:condition-target "UMD/Object/Medical/[0-z]*/Log | UMD/Salle_dialyse/Poste_hemodialyse/[0-z]*/log" ;
     sh:condition [
       sh:sparql [
         a sh:SPARQLConstraint ;
@@ -1243,7 +1243,7 @@ smd:ruleNurse12
     rdfs:comment "Un infirmier peut se desabonner des information d'un patient" ;
     mqsec:order 3 ;
     mqsec:condition-action "unsubscribe" ;
-    mqsec:condition-target "UMD/Object/Medical/Device_id/Log | UMD/Salle_dialyse/Poste_hemodialyse/Device_id/log" ;
+    mqsec:condition-target "UMD/Object/Medical/[0-z]*/Log | UMD/Salle_dialyse/Poste_hemodialyse/[0-z]*/log" ;
     sh:condition [
       sh:sparql [
         a sh:SPARQLConstraint ;
