@@ -7,6 +7,7 @@
 @prefix mqsec:  <http://bruno.univ-tln.fr/mqsec/1.0#> .
 @prefix xacml:  <urn:oasis:names:tc:xacml:3.0:> .
 
+
 # namespaces declaration for the Sparql queries
 mqsec:
 	sh:declare [
@@ -219,6 +220,28 @@ mqsec:pepEventRuleExtension
     			}
     			""" ;
     	] ;
+
+	sh:rule [
+    	a sh:SPARQLRule ;
+    		sh:order 2 ;
+    		sh:prefixes mqsec:, sh: ;
+    		sh:condition mqsec:condition-source ;
+    		sh:construct """
+    			CONSTRUCT {
+                        ?rule sh:condition [
+                          	sh:property [
+                       	      sh:path mqsec:source ;
+                       	      sh:class ?source ;
+                       	    ]
+                       	  ]	.		}
+    			WHERE {
+    				$this mqsec:condition-source ?source .
+    				$this sh:rule ?rule .
+    			}
+    			""" ;
+    	] ;
+
+
     sh:rule [
       a sh:SPARQLRule;
         sh:order 1 ;
