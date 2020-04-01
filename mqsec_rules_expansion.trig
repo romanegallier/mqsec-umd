@@ -79,7 +79,12 @@ mqsec:pepEventRuleExtension
                         sh:targetClass mqsec:pepEvent ;
     			        a sh:SPARQLRule ;
                         mqsec:order ?priority ;
-
+    			sh:condition    [ 
+				sh:property  [ 
+					sh:path mqsec:applicable-rule ;
+                                        sh:maxCount  0;
+                                ]
+                        ] ;
                         sh:prefixes mqsec:, rdf: ;
                         sh:order 1 ;
                         sh:construct ?construct ;
