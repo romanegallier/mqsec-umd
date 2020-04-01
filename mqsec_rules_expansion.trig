@@ -239,7 +239,7 @@ mqsec:pepEventRuleExtension
     				$this sh:rule ?rule .
     			}
     			""" ;
-    	] ;
+    	]  ;
 
 
     sh:rule [
